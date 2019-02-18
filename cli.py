@@ -30,6 +30,28 @@ async def split_tokens(xstr):
 
     return tokens
 
+
+def check_arguments(tokens, arg_types):
+        if len(tokens) != len(arg_types):
+            return False
+
+        for i in range(0, len(tokens)):
+            if type(tokens[i]) != arg_types[i]:
+                return False
+
+        return True
+
+commands = {}
+
+def create(args):
+    if  ( check_arguments(args, [str, int, int]) ):
+           new_game = create_game(args[0], args[1], args[2])
+        
+
+command_dict["create"] = Command()
+
+
+
 async def handle_command(command, target_game):
 
   split_message = split_tokens(command)
