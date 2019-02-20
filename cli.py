@@ -1,4 +1,8 @@
-async def split_tokens(xstr):
+import discord
+import game
+
+#Helper functions
+async def _split_tokens(xstr):
     prev_index = 0
     string_mode = False
     tokens = []
@@ -28,10 +32,17 @@ async def split_tokens(xstr):
     if xstr[prev_index:len(xstr)] != "":
         tokens.append(xstr[prev_index:len(xstr)])
 
+    #convert to ints where possible, to aid type checking
+    converted_tokens = []
+    for token in tokens:
+        try:
+            converted_tokens.append(int(token))
+        except ValueError:
+            converted_tokens.append(token)
+
     return tokens
 
-
-def check_arguments(tokens, arg_types):
+async def _check_arguments(tokens, arg_types):
         if len(tokens) != len(arg_types):
             return False
 
@@ -41,50 +52,85 @@ def check_arguments(tokens, arg_types):
 
         return True
 
-commands = {}
 
-def create(args):
-    if  ( check_arguments(args, [str, int, int]) ):
-           new_game = create_game(args[0], args[1], args[2])
+
+#Command functions
+#todo: make this EAFP
+async def _create(args, author, channel):
+
+    if type(channel) == discord.PrivateChannel:
+        return "Games cannot be created in DMs. Please try again in a server."
+    
+    elif  await check_arguments(args, [str, int]):
+            await new_game = create_game(args[0], args[1], author, channel)
+
+            if new_game == None:
+                return "Invalid role in role list."
+            
+            outstr = ("Owner: %s"
+                     "Roles: %s"
+                     "ID: %s") %
+                     (new_game.owner.name, args[0].replace(',', ', '), new_game.id)
+            return outstr
+
+async def _join(args, author):
+
+    try:
         
+        target_game = game.game_dict[args[0]]
 
-command_dict["create"] = Command()
+        if target_game.started:
+            return "This game has already begun, and cannot be joined."
+
+        elif author in target_game.banned:
+            return "You have been banned from this game."
+
+        elif author in target_game.players:
+            return "You are already in this game."
+
+        elif len(players) >= len(role_list):
+            return "This game is already full."
+
+        else:
+            target_game.players.append(author)
+            return "Game successfully joined."
+    except:
+        return "No game found with that ID."
+
+
+async def _leave(args, author):
+
+    try:
+        target_game = game.game_dict[args[0]]
+        
+        if target_game.started:
+            target_game.kill(author)
+        else:
+            target_game.players.remove(author)
+
+    except KeyError:
+        return "No game found with that ID."
+
+    except ValueError:
+            return "You are not in this game."
 
 
 
-async def handle_command(command, target_game):
+async def handle_command(command, author, channel):
 
-  split_message = split_tokens(command)
+  split_message = await split_tokens(command)
   command_name = split_message[0]
   args = split_message[1:len(split_message)]
 
 
   if command_name == "create":
-    if(len(args) == 3):
-      if (
-        type(args[0]) == str and
-        type(args[1]) == int and
-        type(args[2]) == int):
-         return -1
-
-    elif len(args) == 4:
-      if (
-        type(args[0]) == str and
-        type(args[1] == int) and
-        type(args[2] == int)and 
-        type(args[3] == str)):
-          return -1
-    
-    else:
-      #game = make_new_game(args)
-      #return game
-      pass
+    return await _create(args, author, channel)
     
   if command_name == "join":
-    pass
+    return await _join(args, author)
 
   if command_name == "leave":
-    pass
+    return await _leave(args, author)
 
 
   if command_name == "kick":
