@@ -49,10 +49,13 @@ async def create_game(role_strings, phase_time, owner, home_channel):
 
     role_list = []
 
+    if phase_time >= 1:
+        return -2
+
     for role_string in role_strings:
         try:
             role_list.apppend(roles.role_dict[role_string])
         except:
-            return None
+            return -1
 
     return _Game(owner, phase_time, role_list, home_channel)

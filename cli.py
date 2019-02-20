@@ -56,6 +56,7 @@ async def _check_arguments(tokens, arg_types):
 
 #Command functions
 #todo: make this EAFP
+#maf!create [roles] [phase time]
 async def _create(args, author, channel):
 
     if type(channel) == discord.PrivateChannel:
@@ -64,8 +65,10 @@ async def _create(args, author, channel):
     elif  await check_arguments(args, [str, int]):
             await new_game = create_game(args[0], args[1], author, channel)
 
-            if new_game == None:
+            if new_game == -1:
                 return "Invalid role in role list."
+            if new_game == -2:
+                return "Phases must be at least two minutes long."
             
             outstr = ("Owner: %s"
                      "Roles: %s"
@@ -73,6 +76,7 @@ async def _create(args, author, channel):
                      (new_game.owner.name, args[0].replace(',', ', '), new_game.id)
             return outstr
 
+#maf!join [game id]
 async def _join(args, author):
 
     try:
@@ -97,7 +101,7 @@ async def _join(args, author):
     except:
         return "No game found with that ID."
 
-
+#maf!leave [game id]
 async def _leave(args, author):
 
     try:
@@ -118,6 +122,7 @@ async def _leave(args, author):
     except ValueError:
         return "You are not in this game."
 
+#maf!kick [game id] [target]
 async def _kick(args, author):
 
     try:
@@ -138,13 +143,81 @@ async def _kick(args, author):
             else:
                 target_game.players.remove(target)
 
+            return "Player has been kicked."
+
     except KeyError:
         return "No game found with that ID."
 
     except ValueError:
         return "Target player not found. Note that only usernames, not nicknames, can be used, and the discriminator (#1234) is required."
 
+#maf!ban [game id] [target]
+async def _ban(args, author, channel):
 
+    try:
+        target_game = game.game_dict[args[0]]
+
+        for member in channel.server.members:
+            if args[1] == str(member):
+                target = member
+                break
+        else:
+            raise ValueError
+
+        if author != target_game.owner:
+            return "You do not own this game."
+        else:
+            try:
+                #kill() expects a valid target
+                if target not in target_game.players:
+                    raise ValueError
+                
+                if target_game.started:
+                    kill(target)
+                else:
+                    target_game.players.remove(target)
+            except ValueError: pass
+
+            if target in target_game.banned:
+                return "User is already banned."
+            else:
+                target_game.banned.append(target)
+                return "User has been banned."
+
+    except KeyError:
+        return "No game found with that ID."
+
+    except ValueError:
+        return "Target user not found. Note that only usernames, not nicknames, can be used, and the discriminator (#1234) is required. Additionally, they must be present in this server."
+    
+#maf!unban [game id] [target]
+async def _unban(args, author, channel):
+
+    try:
+        target_game = game.game_dict[args[0]]
+
+        for member in channel.server.members:
+            if args[1] == str(member):
+                target = member
+                break
+        else:
+            raise ValueError
+
+        if author != target_game.owner:
+            return "You do not own this game."
+
+        else:
+            try:
+                target_game.banned.remove(target)
+            except:
+                return "That user is not banned."
+            return "User has been unbanned."
+
+    except KeyError:
+        return "No game found with that ID."
+
+    except ValueError:
+        return "Target user not found. Note that only usernames, not nicknames, can be used, and the discriminator (#1234) is required. Additionally, they must be present in this server."
 
 async def handle_command(command, author, channel):
 
@@ -162,14 +235,15 @@ async def handle_command(command, author, channel):
   if command_name == "leave":
     return await _leave(args, author)
 
+
   if command_name == "kick":
     return await _kick(args, author)
 
   if command_name == "ban":
-    pass
+    return await _ban(args, author, channel)
 
   if command_name == "unban":
-    pass
+    return await _unban(args, author, channel)
 
   if command_name == "start":
     pass
