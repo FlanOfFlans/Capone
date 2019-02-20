@@ -102,6 +102,10 @@ async def _leave(args, author):
 
     try:
         target_game = game.game_dict[args[0]]
+
+        if author not in target_game.players:
+            #kill() expects a valid target
+            raise ValueError
         
         if target_game.started:
             target_game.kill(author)
@@ -112,7 +116,33 @@ async def _leave(args, author):
         return "No game found with that ID."
 
     except ValueError:
-            return "You are not in this game."
+        return "You are not in this game."
+
+async def _kick(args, author):
+
+    try:
+        target_game = game.game_dict[args[0]]
+
+        for player in target_game.players:
+            if args[1] == str(player):
+                target = player
+                break
+        else:
+            raise ValueError
+
+        if author != target_game.owner
+            return "You do not own this game."
+        else:
+            if target_game.started:
+                kill(target)
+            else:
+                target_game.players.remove(target)
+
+    except KeyError:
+        return "No game found with that ID."
+
+    except ValueError:
+        return "Target player not found. Note that only usernames, not nicknames, can be used, and the discriminator (#1234) is required."
 
 
 
@@ -132,9 +162,8 @@ async def handle_command(command, author, channel):
   if command_name == "leave":
     return await _leave(args, author)
 
-
   if command_name == "kick":
-    pass
+    return await _kick(args, author)
 
   if command_name == "ban":
     pass
