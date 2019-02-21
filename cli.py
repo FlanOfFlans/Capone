@@ -163,28 +163,31 @@ async def _ban(args, author, channel):
             if args[1] == str(member):
                 target = member
                 break
+            
+        #Note: else belongs to for, not if
         else:
             raise ValueError
 
         if author != target_game.owner:
             return "You do not own this game."
-        else:
-            try:
-                #kill() expects a valid target
-                if target not in target_game.players:
-                    raise ValueError
-                
-                if target_game.started:
-                    kill(target)
-                else:
-                    target_game.players.remove(target)
-            except ValueError: pass
 
-            if target in target_game.banned:
-                return "User is already banned."
+        if target in target_game.banned:
+            return "User is already banned."
+
+        try:
+            if target_game.started and target in target_game.players:
+                kill(target)
             else:
-                target_game.banned.append(target)
-                return "User has been banned."
+                target_game.players.remove(target)
+
+        except ValueError:
+            #Banning players not in the game yet is expected
+            pass
+
+        
+        else:
+            target_game.banned.append(target)
+            return "User has been banned."
 
     except KeyError:
         return "No game found with that ID."
@@ -202,18 +205,19 @@ async def _unban(args, author, channel):
             if args[1] == str(member):
                 target = member
                 break
+            
+        #Note: else belongs to for, not if
         else:
             raise ValueError
 
         if author != target_game.owner:
             return "You do not own this game."
 
-        else:
-            try:
-                target_game.banned.remove(target)
-            except:
-                return "That user is not banned."
-            return "User has been unbanned."
+
+        try: target_game.banned.remove(target)
+        except ValueError: return "That user is not banned."
+
+        return "User has been unbanned."
 
     except KeyError:
         return "No game found with that ID."
