@@ -33,6 +33,7 @@ class _Game():
 
         self.owner = owner
         self.players = [owner]
+        self.player_roles = {}
         self.banned = []
 
         self.phase_length = phase_time
@@ -40,13 +41,14 @@ class _Game():
         self.is_day = True
 
         self.possible_roles = role_list
-        self.role_dict = {}
+        self.player_roles = {}
         
         self.started = False
         self.age = 0
         
         self.home_channel = None
         self.output_buffer = []
+        self.power_buffer = []
 
         self.id = _generate_id()
         self.culled = False
@@ -54,11 +56,13 @@ class _Game():
 
 
     def _cull():
+        #The tick loop handles actually culling the game
         if not started and self.age > _MAX_UNSTARTED_AGE:
             self.culled = True
         if started and self.age > _MAX_STARTED_AGE:
             self.culled = True
-
+            
+#Runs once per minute, but first tick may be shorter
     def tick():
         self.age += 1
         self.remaining_phase_time -= 1
@@ -78,12 +82,17 @@ class _Game():
         self.remaining_phase_time = self.phase_length
 
     def _dawn():
-        self.output_buffer.append("It is now day! Mafia players should refrain from talking privately during the day.")
+        self.output_buffer.append("It is now day! Town players may talk freely.")
 
+        #Sort by priority, highest to lowest
+        power_buffer.sort(reverse=True, key=lambda power: power.priority)
+        for power in power_buffer:
+            power.use()
+        
         self.is_day = True
         self.remaining_phase_time = self.phase_length
     
-    def kill(player):
+    def kill(player, cause=None):
         raise NotImplementedError()
     
 async def create_game(role_strings, phase_time, owner, home_channel):
@@ -102,5 +111,4 @@ async def create_game(role_strings, phase_time, owner, home_channel):
 
     return _Game(owner, phase_time, role_list, home_channel)
 
-#Runs once per minute, but first tick may be shorter
 
