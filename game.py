@@ -2,6 +2,12 @@ import time
 import random
 import roles
 
+#Unstarted games older than this will be culled
+_MAX_UNSTARTED_AGE = 4230 #72 hours
+#Started games older than this will be culled
+#Age resets when starting
+_MAX_STARTED_AGE = 30240 #3 weeks
+
 game_dict = {}
 
 def _generate_id():
@@ -29,22 +35,57 @@ class _Game():
         self.players = [owner]
         self.banned = []
 
-        self.phase_time = phase_time        
-        self.is_day = False
+        self.phase_length = phase_time
+        self.remaining_phase_time = phase_time
+        self.is_day = True
 
         self.possible_roles = role_list
         self.role_dict = {}
         
         self.started = False
         self.age = 0
+        
         self.home_channel = None
+        self.output_buffer = []
 
         self.id = _generate_id()
+        self.culled = False
         game_dict[self.id] = self
 
+
+    def _cull():
+        if not started and self.age > _MAX_UNSTARTED_AGE:
+            self.culled = True
+        if started and self.age > _MAX_STARTED_AGE:
+            self.culled = True
+
+    def tick():
+        self.age += 1
+        self.remaining_phase_time -= 1
+
+        if is_day and self.remaining_phase_time == 0:
+            self._dusk()
+
+        elif not is_day and self.remaining_phase_time == 0:
+            self._dawn()
+        
+        self._cull()
+
+    def _dusk():
+        self.output_buffer.append("It is now night! Town players should refrain from talking to one another at night.")
+
+        self.is_day = False
+        self.remaining_phase_time = self.phase_length
+
+    def _dawn():
+        self.output_buffer.append("It is now day! Mafia players should refrain from talking privately during the day.")
+
+        self.is_day = True
+        self.remaining_phase_time = self.phase_length
+    
     def kill(player):
         raise NotImplementedError()
-
+    
 async def create_game(role_strings, phase_time, owner, home_channel):
 
     role_strings = role_strings.split(" ")
@@ -60,3 +101,6 @@ async def create_game(role_strings, phase_time, owner, home_channel):
             return -1
 
     return _Game(owner, phase_time, role_list, home_channel)
+
+#Runs once per minute, but first tick may be shorter
+
