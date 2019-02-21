@@ -4,7 +4,7 @@ import roles
 
 game_dict = {}
 
-async def _generate_id():
+def _generate_id():
     hex_str = hex(round(time.time()))
     #remove leading '0x', add hyphen after 4 hex characters
     hex_str = hex_str[2:6] + '-' + hex_str[6:len(hex_str)]
@@ -15,7 +15,7 @@ async def _generate_id():
 
     #recurse until we get a unique ID
     if hex_str in game_dict:
-        return generate_id()
+        return _generate_id()
     else:
         return hex_str
 
@@ -39,23 +39,24 @@ class _Game():
         self.age = 0
         self.home_channel = None
 
-        self.id = await _generate_id()
-        games_dict[self.id] = self
+        self.id = _generate_id()
+        game_dict[self.id] = self
 
     def kill(player):
         raise NotImplementedError()
 
 async def create_game(role_strings, phase_time, owner, home_channel):
 
+    role_strings = role_strings.split(" ")
     role_list = []
 
-    if phase_time >= 1:
+    if phase_time <= 1:
         return -2
 
     for role_string in role_strings:
         try:
-            role_list.apppend(roles.role_dict[role_string])
-        except:
+            role_list.append(roles.role_dict[role_string]())
+        except KeyError:
             return -1
 
     return _Game(owner, phase_time, role_list, home_channel)

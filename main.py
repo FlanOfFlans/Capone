@@ -7,14 +7,14 @@ prefix = "maf!"
 @client.event
 async def on_message(message):
 
-  if not message.content.starts_with(prefix):
+  if not message.content.startswith(prefix):
     return
 
-  command_string = message.content[0:len(prefix)]
+  command_string = message.content[len(prefix):len(message.content)]
 
-  output = cli.handle_command(command_string)
+  output = await cli.handle_command(command_string, message.author, message.channel)
 
   if output != None:
-    client.send_message(message.channel, output)
+    await client.send_message(message.channel, output)
 
 #client.run(token)

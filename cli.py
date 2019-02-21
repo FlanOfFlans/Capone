@@ -40,7 +40,7 @@ async def _split_tokens(xstr):
         except ValueError:
             converted_tokens.append(token)
 
-    return tokens
+    return converted_tokens
 
 async def _check_arguments(tokens, arg_types):
         if len(tokens) != len(arg_types):
@@ -61,24 +61,24 @@ async def _create(args, author, channel):
 
     if type(channel) == discord.PrivateChannel:
         return "Games cannot be created in DMs. Please try again in a server."
-    
-    elif  await check_arguments(args, [str, int]):
-            await new_game = create_game(args[0], args[1], author, channel)
 
-            if new_game == -1:
-                return "Invalid role in role list."
-            if new_game == -2:
-                return "Phases must be at least two minutes long."
-            
-            outstr = ("Owner: %s"
-                     "Roles: %s"
-                     "ID: %s") %
-                     (new_game.owner.name, args[0].replace(',', ', '), new_game.id)
-            return outstr
+    elif await _check_arguments(args, [str, int]):
+        new_game = await game.create_game(args[0], args[1], author, channel)
+
+        if new_game == -1:
+            return "Invalid role in role list."
+        if new_game == -2:
+            return "Phases must be at least two minutes long."
+        
+        outstr = ("Owner: %s"
+                 "Roles: %s"
+                 "ID: %s") % (
+                 new_game.owner.name, args[0].replace(',', ', '), new_game.id)
+        return outstr
 
 #maf!join [game id]
 async def _join(args, author):
-
+    
     try:
         
         target_game = game.game_dict[args[0]]
@@ -92,13 +92,13 @@ async def _join(args, author):
         elif author in target_game.players:
             return "You are already in this game."
 
-        elif len(players) >= len(role_list):
+        elif len(target_game.players) >= len(target_game.possible_roles):
             return "This game is already full."
 
         else:
             target_game.players.append(author)
             return "Game successfully joined."
-    except:
+    except KeyError:
         return "No game found with that ID."
 
 #maf!leave [game id]
@@ -115,6 +115,8 @@ async def _leave(args, author):
             target_game.kill(author)
         else:
             target_game.players.remove(author)
+
+        return "Game sucessfully left."
 
     except KeyError:
         return "No game found with that ID."
@@ -135,7 +137,7 @@ async def _kick(args, author):
         else:
             raise ValueError
 
-        if author != target_game.owner
+        if author != target_game.owner:
             return "You do not own this game."
         else:
             if target_game.started:
@@ -221,11 +223,10 @@ async def _unban(args, author, channel):
 
 async def handle_command(command, author, channel):
 
-  split_message = await split_tokens(command)
+  split_message = await _split_tokens(command)
   command_name = split_message[0]
   args = split_message[1:len(split_message)]
-
-
+    
   if command_name == "create":
     return await _create(args, author, channel)
     
