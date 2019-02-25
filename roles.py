@@ -11,7 +11,7 @@ class _Role():
     def target_power(args):
 
         if args[0] == "unset":
-            self.power_call = lambda: return ""
+            self.power_call = lambda _: ""
             return "Power targetting reset."
 
     def try_to_kill(source):
@@ -53,7 +53,7 @@ class Enforcer(_Role):
             maflist = []
             for player in game.players:
                 role = self.player_roles[player]
-                if role.faction == "mafia" and role.attribs.get("nopromote", False):
+                if role.faction == "mafia" and not role.attribs.get("nopromote", False):
                     maflist.append(player)
 
             try:
@@ -88,7 +88,7 @@ class Enforcer(_Role):
     description = ("If you think he looks bad, you should see the other guy. "
                    "Take out the Mafia's enemies, but don't get found out. "
                    "Use 'maf!power kill [target]' to kill somebody at night. "
-                   "If you die, a random mafia member will become an enforcer."
+                   "If you die, a random mafia member will become an enforcer.")
     faction = "mafia"
 
 class Goon(_Role):

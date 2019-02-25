@@ -33,7 +33,6 @@ class _Game():
 
         self.owner = owner
         self.players = [owner]
-        self.player_roles = {}
         self.banned = []
 
         self.phase_length = phase_time
@@ -42,6 +41,8 @@ class _Game():
 
         self.possible_roles = role_list
         self.player_roles = {}
+        self.all_players = {} #includes dead people
+
         
         self.started = False
         self.age = 0
@@ -54,14 +55,6 @@ class _Game():
         self.culled = False
         game_dict[self.id] = self
 
-
-    def _cull():
-        #The tick loop handles actually culling the game
-        if not started and self.age > _MAX_UNSTARTED_AGE:
-            self.culled = True
-        if started and self.age > _MAX_STARTED_AGE:
-            self.culled = True
-            
     #Runs once per minute, but first tick may be shorter
     def tick():
         self.age += 1
@@ -75,35 +68,15 @@ class _Game():
         
         self._cull()
 
-    def _dusk():
-        self.buffer_output("It is now night! Town players should refrain from talking to one another at night.")
-
-        self.is_day = False
-        self.remaining_phase_time = self.phase_length
-
-        for player in players:
-            player_roles[player].dusk()
-
-    def _dawn():
-        self.buffer_output("It is now day! Town players may talk freely.")
-
-        #Sort by priority, highest to lowest
-        power_buffer.sort(reverse=True, key=lambda power: power.priority)
-        for power in power_buffer:
-            power.use()
-        
-        self.is_day = True
-        self.remaining_phase_time = self.phase_length
-
-        for player in players:
-            player_roles[player].dawn()
-
     def try_to_kill(target, source):
         if target.try_to_kill(source):
             kill(target)
     
     def kill(target):
-        raise NotImplementedError()
+        target_role = player_roles(target)
+        
+        title = str(target) + ", the " + target_role.long_name
+        self.buffer_message(title + ", has been found dead!")
 
     def change_role(self, target, new_role):
         role = new_role(self)
@@ -118,7 +91,60 @@ class _Game():
         if channel == None:
             channel = self.home_channel
 
-        _output_buffer.append((message, channel))    
+        _output_buffer.append((message, channel))  
+
+    def start():
+        if self.started:
+            return
+
+        self.age = 0
+        self.started = True
+
+        unchosen_players = players
+        for role in possible_roles:
+            chosen_player = random.choice(unchosen_players)
+            unchosen_players.remove(chosen_player)
+
+            player_roles[role(self)] = chosen_player
+            buffer_message(("You are a **" + role.long_name + "**!\n"
+                            role.description),
+                            chosen_player)
+            
+            
+
+    def _cull():
+        #The tick loop handles actually culling the game
+        if not started and self.age > _MAX_UNSTARTED_AGE:
+            self.culled = True
+        if started and self.age > _MAX_STARTED_AGE:
+            self.culled = True
+            
+
+
+    def _dusk():
+        self.buffer_output("It is now night! Town players should refrain from talking to one another at night.")
+
+        self.is_day = False
+        self.remaining_phase_time = self.phase_length
+
+        roles = self.player_roles.values()
+
+        for role in roles:
+            role.dusk()
+
+    def _dawn():
+        self.buffer_output("It is now day! Town players may talk freely.")
+
+        #Sort by priority, highest to lowest
+        roles = self.player_roles.values()
+        roles.sort(key=lambda x: x.priority, reverse=True)
+
+        for role in roles:
+            role.power_call()
+
+        for role in roles:
+            role.dawn()
+  
 
 
     
@@ -132,7 +158,7 @@ async def create_game(role_strings, phase_time, owner, home_channel):
 
     for role_string in role_strings:
         try:
-            role_list.append(roles.role_dict[role_string]())
+            role_list.append(roles.role_dict[role_string])
         except KeyError:
             return -1
 
