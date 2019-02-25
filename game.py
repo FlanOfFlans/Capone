@@ -47,7 +47,7 @@ class _Game():
         self.age = 0
         
         self.home_channel = None
-        self.output_buffer = []
+        self._output_buffer = []
         self.power_buffer = []
 
         self.id = _generate_id()
@@ -62,7 +62,7 @@ class _Game():
         if started and self.age > _MAX_STARTED_AGE:
             self.culled = True
             
-#Runs once per minute, but first tick may be shorter
+    #Runs once per minute, but first tick may be shorter
     def tick():
         self.age += 1
         self.remaining_phase_time -= 1
@@ -76,7 +76,7 @@ class _Game():
         self._cull()
 
     def _dusk():
-        self.output_buffer.append("It is now night! Town players should refrain from talking to one another at night.")
+        self.buffer_output("It is now night! Town players should refrain from talking to one another at night.")
 
         self.is_day = False
         self.remaining_phase_time = self.phase_length
@@ -85,7 +85,7 @@ class _Game():
             player_roles[player].dusk()
 
     def _dawn():
-        self.output_buffer.append("It is now day! Town players may talk freely.")
+        self.buffer_output("It is now day! Town players may talk freely.")
 
         #Sort by priority, highest to lowest
         power_buffer.sort(reverse=True, key=lambda power: power.priority)
@@ -104,6 +104,21 @@ class _Game():
     
     def kill(target):
         raise NotImplementedError()
+
+    def change_role(self, target, new_role):
+        role = new_role(self)
+        role.attribs = target.attribs
+        self.buffer_message(("You are now a " + role.long_role +"!\n")
+                            (role.description + "\n"),
+                            target)
+
+        player_roles[player] = role
+
+    def buffer_message(message, channel=None):
+        if channel == None:
+            channel = self.home_channel
+
+        _output_buffer.append((message, channel))    
 
 
     
