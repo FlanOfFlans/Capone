@@ -81,6 +81,9 @@ class _Game():
         self.is_day = False
         self.remaining_phase_time = self.phase_length
 
+        for player in players:
+            player_roles[player].dusk()
+
     def _dawn():
         self.output_buffer.append("It is now day! Town players may talk freely.")
 
@@ -91,9 +94,18 @@ class _Game():
         
         self.is_day = True
         self.remaining_phase_time = self.phase_length
+
+        for player in players:
+            player_roles[player].dawn()
+
+    def try_to_kill(target, source):
+        if target.try_to_kill(source):
+            kill(target)
     
-    def kill(player, cause=None):
+    def kill(target):
         raise NotImplementedError()
+
+
     
 async def create_game(role_strings, phase_time, owner, home_channel):
 
