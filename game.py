@@ -28,7 +28,6 @@ def _generate_id():
 class _Game():
 
     def __init__(self, owner, phase_time, role_list, home_channel):
-
         self.home_channel = home_channel
 
         self.owner = owner
@@ -47,8 +46,8 @@ class _Game():
         self.started = False
         self.age = 0
         
-        self.home_channel = None
-        self._output_buffer = []
+        self.home_channel = home_channel
+        self.output_buffer = []
         self.power_buffer = []
 
         self.id = _generate_id()
@@ -56,14 +55,14 @@ class _Game():
         game_dict[self.id] = self
 
     #Runs once per minute, but first tick may be shorter
-    def tick():
+    def tick(self):
         self.age += 1
         self.remaining_phase_time -= 1
 
-        if is_day and self.remaining_phase_time == 0:
+        if self.is_day and self.remaining_phase_time == 0:
             self._dusk()
 
-        elif not is_day and self.remaining_phase_time == 0:
+        elif not self.is_day and self.remaining_phase_time == 0:
             self._dawn()
         
         self._cull()
@@ -81,48 +80,49 @@ class _Game():
     def change_role(self, target, new_role):
         role = new_role(self)
         role.attribs = target.attribs
-        self.buffer_message(("You are now a " + role.long_role +"!\n")
-                            (role.description + "\n"),
+        self.buffer_message(("You are now a " + role.long_role +"!\n"
+                            "%s\n" % role.description),
                             target)
 
         player_roles[player] = role
 
-    def buffer_message(message, channel=None):
+    def buffer_message(self, message, channel=None):
         if channel == None:
             channel = self.home_channel
 
-        _output_buffer.append((message, channel))  
+        self.output_buffer.append((message, channel))  
 
-    def start():
+    def start(self):
         if self.started:
             return
 
         self.age = 0
         self.started = True
 
-        unchosen_players = players
-        for role in possible_roles:
+        unchosen_players = self.players
+        for role in self.possible_roles:
             chosen_player = random.choice(unchosen_players)
             unchosen_players.remove(chosen_player)
 
-            player_roles[role(self)] = chosen_player
-            buffer_message(("You are a **" + role.long_name + "**!\n"
-                            role.description),
+            self.player_roles[chosen_player] = role(self)
+            self.buffer_message(("You are a **" + role.long_name + "**!\n"
+                            "%s" % role.description),
                             chosen_player)
+        self.buffer_message("The game has started!")
             
             
 
-    def _cull():
+    def _cull(self):
         #The tick loop handles actually culling the game
-        if not started and self.age > _MAX_UNSTARTED_AGE:
+        if not self.started and self.age > _MAX_UNSTARTED_AGE:
             self.culled = True
-        if started and self.age > _MAX_STARTED_AGE:
+        if self.started and self.age > _MAX_STARTED_AGE:
             self.culled = True
             
 
 
-    def _dusk():
-        self.buffer_output("It is now night! Town players should refrain from talking to one another at night.")
+    def _dusk(self):
+        self.buffer_message("It is now night! Town players should refrain from talking to one another at night.")
 
         self.is_day = False
         self.remaining_phase_time = self.phase_length
@@ -132,8 +132,8 @@ class _Game():
         for role in roles:
             role.dusk()
 
-    def _dawn():
-        self.buffer_output("It is now day! Town players may talk freely.")
+    def _dawn(self):
+        self.buffer_message("It is now day! Town players may talk freely.")
 
         #Sort by priority, highest to lowest
         roles = self.player_roles.values()

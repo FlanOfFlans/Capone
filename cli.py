@@ -70,9 +70,9 @@ async def _create(args, author, channel):
         if new_game == -2:
             return "Phases must be at least two minutes long."
         
-        outstr = ("Owner: %s"
-                 "Roles: %s"
-                 "ID: %s") % (
+        outstr = ("Owner: %s\n"
+                 "Roles: %s\n"
+                 "ID: %s\n") % (
                  new_game.owner.name, args[0].replace(',', ', '), new_game.id)
         return outstr
 
@@ -225,6 +225,20 @@ async def _unban(args, author, channel):
     except ValueError:
         return "Target user not found. Note that only usernames, not nicknames, can be used, and the discriminator (#1234) is required. Additionally, they must be present in this server."
 
+#maf!start [game id]
+async def _start(args, author):
+    try:
+        target_game = game.game_dict[args[0]]
+
+        if author != target_game.owner:
+            return "You do not own thios game."
+
+        target_game.start()
+        return "Game queued to be started!"
+
+    except KeyError:
+        return "No game found with that ID."
+
 async def handle_command(command, author, channel):
 
   split_message = await _split_tokens(command)
@@ -251,7 +265,7 @@ async def handle_command(command, author, channel):
     return await _unban(args, author, channel)
 
   if command_name == "start":
-    pass
+    return await _start(args, author)
 
 
   if command_name == "vote":
