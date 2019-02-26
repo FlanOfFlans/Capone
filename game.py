@@ -105,10 +105,10 @@ class _Game():
             unchosen_players.remove(chosen_player)
 
             self.player_roles[chosen_player] = role(self)
-            self.buffer_message(("You are a **" + role.long_name + "**!\n"
+            self.buffer_message(("Game %s: You are a **" + role.long_name + "**!\n" % self.id
                             "%s" % role.description),
                             chosen_player)
-        self.buffer_message("The game has started!")
+        self.buffer_message("Game %s: The game has started!" % self.id)
             
             
 
@@ -137,10 +137,11 @@ class _Game():
 
         #Sort by priority, highest to lowest
         roles = self.player_roles.values()
-        roles.sort(key=lambda x: x.priority, reverse=True)
+        sorted(roles, key=lambda x: x.priority, reverse=True)
 
         for role in roles:
-            role.power_call()
+            try: role.power_call()
+            except TypeError: pass
 
         for role in roles:
             role.dawn()

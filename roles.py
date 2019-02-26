@@ -8,22 +8,22 @@ class _Role():
     def __init__(self, game):
         self.game = game
 
-    def target_power(args):
+    def target_power(self, args):
 
         if args[0] == "unset":
             self.power_call = lambda _: ""
             return "Power targetting reset."
 
-    def try_to_kill(source):
+    def try_to_kill(self, source):
         if self.attribs.get("protected", False):
             return False
         else:
             return True
 
-    def dawn():
+    def dawn(self):
         return None
 
-    def dusk():
+    def dusk(self):
         return None
 
     short_name = "please don't use this placeholder"
@@ -45,7 +45,7 @@ class Townie(_Role):
 
 class Enforcer(_Role):
 
-    def try_to_kill(source):
+    def try_to_kill(self, source):
         dying = super().try_to_kill(source)
 
         if dying:
@@ -64,7 +64,7 @@ class Enforcer(_Role):
 
         return dying
 
-    def target_power(args):
+    def target_power(self, args):
         n = super().target_power(args)
         if n != None:
             return n

@@ -53,7 +53,9 @@ async def tick_games():
           message = "\n".join(item[1])
           await client.send_message(item[0], message)
 
+        current_game.output_buffer = []
+        
     await asyncio.sleep(60)
 
 client.loop.create_task(tick_games())
-client.run("NTMwNDcxNjQ5MzEzODE2NTg2.D1ZE4A.7WTuKwuVgAbLaKhsJNggnyooRfs")
+client.run("NTMwNDcxNjQ5MzEzODE2NTg2.D1baWQ.bVrHApU0oEqFTIEtxAiuF3ZeOLA")
