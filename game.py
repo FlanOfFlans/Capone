@@ -105,10 +105,10 @@ class _Game():
             unchosen_players.remove(chosen_player)
 
             self.player_roles[chosen_player] = role(self)
-            self.buffer_message(("Game %s: You are a **" + role.long_name + "**!\n" % self.id
-                            "%s" % role.description),
+            self.buffer_message(("Game {0}: You are **{1}**!\n"
+                            "{2}").format(self.id, role.long_name, role.description),
                             chosen_player)
-        self.buffer_message("Game %s: The game has started!" % self.id)
+        self.buffer_message("Game {0}: The game has started!".format(self.id))
             
             
 
@@ -134,6 +134,9 @@ class _Game():
 
     def _dawn(self):
         self.buffer_message("It is now day! Town players may talk freely.")
+
+        self.is_day = True
+        self.remaining_phase_time = self.phase_length
 
         #Sort by priority, highest to lowest
         roles = self.player_roles.values()
