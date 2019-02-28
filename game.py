@@ -105,10 +105,10 @@ class _Game():
             unchosen_players.remove(chosen_player)
 
             self.player_roles[chosen_player] = role(self)
-            self.buffer_message(("Game {0}: You are **{1}**!\n"
-                            "{2}").format(self.id, role.long_name, role.description),
+            self.buffer_message(("You are **{0}**!\n"
+                            "{1}").format(role.long_name, role.description),
                             chosen_player)
-        self.buffer_message("Game {0}: The game has started!".format(self.id))
+        self.buffer_message("The game has started!")
             
             
 

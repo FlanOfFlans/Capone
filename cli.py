@@ -70,10 +70,12 @@ async def _create(args, author, channel):
         if new_game == -2:
             return "Phases must be at least two minutes long."
         
-        outstr = ("Owner: %s\n"
-                 "Roles: %s\n"
-                 "ID: %s\n") % (
-                 new_game.owner.name, args[0].replace(',', ', '), new_game.id)
+        outstr = ("Owner: {0}\n"
+                 "Roles: {1}\n"
+                 "ID: {2}\n").format(
+                     new_game.owner.name,
+                     args[0].replace(' ', ', '),
+                     new_game.id)
         return outstr
 
 #maf!join [game id]
@@ -184,10 +186,8 @@ async def _ban(args, author, channel):
             #Banning players not in the game yet is expected
             pass
 
-        
-        else:
-            target_game.banned.append(target)
-            return "User has been banned."
+        target_game.banned.append(target)
+        return "User has been banned."
 
     except KeyError:
         return "No game found with that ID."

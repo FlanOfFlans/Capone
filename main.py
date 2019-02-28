@@ -37,7 +37,7 @@ async def tick_games():
       current_game.tick()
 
       if current_game.culled:
-        client.send_message(current_game.home_channel, game.id + ": " + CULL_MESSAGE)
+        client.send_message(current_game.home_channel, CULL_MESSAGE)
         del game.game_dict[game_id]
 
       else:
@@ -51,6 +51,7 @@ async def tick_games():
 
         for item in xdict.items():
           message = "\n".join(item[1])
+          message = ("Game {0}:\n```\n" + message + "\n```").format(game_id)
           await client.send_message(item[0], message)
 
         current_game.output_buffer = []
