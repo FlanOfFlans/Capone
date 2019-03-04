@@ -49,6 +49,7 @@ class _Game():
         self.home_channel = home_channel
         self.output_buffer = []
         self.power_buffer = []
+        self.vote_dict = {}
 
         self.id = _generate_id()
         self.culled = False
@@ -57,6 +58,11 @@ class _Game():
     #Runs once per minute, but first tick may be shorter
     def tick(self):
         self.age += 1
+
+        self._cull()
+
+        if not self.started: return
+        
         self.remaining_phase_time -= 1
 
         if self.is_day and self.remaining_phase_time == 0:
@@ -65,14 +71,13 @@ class _Game():
         elif not self.is_day and self.remaining_phase_time == 0:
             self._dawn()
         
-        self._cull()
 
     def try_to_kill(target, source):
         if target.try_to_kill(source):
             kill(target)
     
     def kill(target):
-        target_role = player_roles(target)
+        target_role = player_roles.pop(target, None)
         
         title = str(target) + ", the " + target_role.long_name
         self.buffer_message(title + ", has been found dead!")
@@ -108,6 +113,10 @@ class _Game():
             self.buffer_message(("You are **{0}**!\n"
                             "{1}").format(role.long_name, role.description),
                             chosen_player)
+
+        for player in self.players:
+            self.vote_dict[player] = 0
+        
         self.buffer_message("The game has started!")
             
             

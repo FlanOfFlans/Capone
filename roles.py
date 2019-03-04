@@ -21,10 +21,10 @@ class _Role():
             return True
 
     def dawn(self):
-        return None
+        pass
 
     def dusk(self):
-        return None
+        voted_for = None
 
     short_name = "please don't use this placeholder"
     long_name = "ERROR"
@@ -32,7 +32,11 @@ class _Role():
     faction = None
     power_call = None
     attribs = {}
-    priority = 0 #high priority goes first
+    #high priority goes first
+    #priority can be changed for each ability
+    #but it won't automatically be reset
+    priority = 0
+    voted_for = None
     
 class Townie(_Role):
 

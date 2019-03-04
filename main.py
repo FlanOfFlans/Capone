@@ -59,4 +59,4 @@ async def tick_games():
     await asyncio.sleep(60)
 
 client.loop.create_task(tick_games())
-client.run("NTMwNDcxNjQ5MzEzODE2NTg2.D1baWQ.bVrHApU0oEqFTIEtxAiuF3ZeOLA")
+client.run("NTMwNDcxNjQ5MzEzODE2NTg2.D17PqA.lMFISMHNnz6FU96sbxhhHz9nprE")

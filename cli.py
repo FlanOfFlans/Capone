@@ -79,11 +79,14 @@ async def _create(args, author, channel):
         return outstr
 
 #maf!join [game id]
-async def _join(args, author):
+async def _join(args, author, channel):
     
     try:
         
         target_game = game.game_dict[args[0]]
+
+        if channel != target_game.home_channel:
+            return "You may only join a game in the channel it was created in."
 
         if target_game.started:
             return "This game has already begun, and cannot be joined."
@@ -104,10 +107,13 @@ async def _join(args, author):
         return "No game found with that ID."
 
 #maf!leave [game id]
-async def _leave(args, author):
+async def _leave(args, author, channel):
 
     try:
         target_game = game.game_dict[args[0]]
+
+        if channel != target_game.home_channel:
+            target_game.buffer_message("{0} has left the game.".format(str(author)))
 
         if author not in target_game.players:
             #kill() expects a valid target
@@ -127,10 +133,12 @@ async def _leave(args, author):
         return "You are not in this game."
 
 #maf!kick [game id] [target]
-async def _kick(args, author):
+async def _kick(args, author, channel):
 
     try:
         target_game = game.game_dict[args[0]]
+
+
 
         for player in target_game.players:
             if args[1] == str(player):
@@ -138,6 +146,9 @@ async def _kick(args, author):
                 break
         else:
             raise ValueError
+
+        if channel != target_game.home_channel:
+            target_game.buffer_message("{0} has been kicked by the owner.".format(str(player)))
 
         if author != target_game.owner:
             return "You do not own this game."
@@ -161,6 +172,9 @@ async def _ban(args, author, channel):
     try:
         target_game = game.game_dict[args[0]]
 
+        if channel != target_game.home_channel:
+            target_game.buffer_message("{0} has been banned by the owner.".format(str(author)))
+
         for member in channel.server.members:
             if args[1] == str(member):
                 target = member
@@ -175,6 +189,9 @@ async def _ban(args, author, channel):
 
         if target in target_game.banned:
             return "User is already banned."
+
+        if channel != target_game.home_channel:
+            target_game.buffer_message("{0} has been banned by the owner.".format(str(target)))
 
         try:
             if target_game.started and target in target_game.players:
@@ -217,6 +234,9 @@ async def _unban(args, author, channel):
         try: target_game.banned.remove(target)
         except ValueError: return "That user is not banned."
 
+        if channel != target_game.home_channel:
+            target_game.buffer_message("{0} has been unbanned by the owner.".format(str(target)))
+
         return "User has been unbanned."
 
     except KeyError:
@@ -231,7 +251,7 @@ async def _start(args, author):
         target_game = game.game_dict[args[0]]
 
         if author != target_game.owner:
-            return "You do not own thios game."
+            return "You do not own this game."
 
         target_game.start()
         return "Game queued to be started!"
@@ -239,6 +259,89 @@ async def _start(args, author):
     except KeyError:
         return "No game found with that ID."
 
+#maf!vote [game id] [target]
+async def _vote(args, author, channel):
+
+    try:
+        target_game = game.game_dict[args[0]]
+
+        if not target_game.started:
+            return "This game has not started yet."
+        
+        if author not in target_game.player_roles:
+            return "You are either dead or not in this game."
+
+        if channel != target_game.home_channel:
+            return "You may only vote in the channel the game was created in."
+
+        role = target_game.player_roles[author]
+
+        for player in target_game.players:
+            if args[1] == str(player):
+                target = player
+                break
+        else:
+            raise ValueError
+
+        if target not in target_game.player_roles:
+            return "That person is already dead."
+
+        if role.voted_for == target:
+            role.voted_for = None
+            target_game.vote_dict[target] -= 1
+            return "Vote reset."
+
+        else:
+            if role.voted_for != None:
+                target_game.vote_dict[role.voted_for] -= 1
+            role.voted_for = target
+            target_game.vote_dict[target] += 1
+
+        #if target_game.vote_dict[target] > len(target_game.player_roles):
+            #kill the target
+
+    except KeyError:
+        return "No game found with that ID."
+
+    except ValueError:
+        return "Target user not found. Note that only usernames, not nicknames, can be used, and the discriminator (#1234) is required."
+
+#maf!voteinfo [game id]
+async def _voteinfo(args):
+    target_game = game.game_dict[args[0]]
+
+    out_list = []
+    for player in target_game.players:
+        xstr = str(player) + " - "
+
+        if player not in target_game.player_roles:
+            xstr += "dead"
+        else:
+            xstr += str(target_game.vote_dict[player])
+        outlist.append(xstr)
+
+    return "\n".join(out_list)
+        
+#maf!power [game id] [args depend on power]
+async def _power(args, author, channel):
+
+    if type(channel) != discord.PrivateChannel:
+        return "Powers cannot be used outside of DMs. You are encouraged to delete the command."
+
+    try:
+        target_game = game.game_dict[args[0]]
+    except KeyError:
+        return "No game found with that ID."
+
+    try:
+        player = target_game.player_roles[author]
+    except KeyError:
+        return "You are either dead, or not in this game."
+
+    player.target_power(args[1:len(args)])
+
+    
+    
 async def handle_command(command, author, channel):
 
   split_message = await _split_tokens(command)
@@ -249,14 +352,14 @@ async def handle_command(command, author, channel):
     return await _create(args, author, channel)
     
   if command_name == "join":
-    return await _join(args, author)
+    return await _join(args, author, channel)
 
   if command_name == "leave":
-    return await _leave(args, author)
+    return await _leave(args, author, channel)
 
 
   if command_name == "kick":
-    return await _kick(args, author)
+    return await _kick(args, author, channel)
 
   if command_name == "ban":
     return await _ban(args, author, channel)
@@ -269,7 +372,7 @@ async def handle_command(command, author, channel):
 
 
   if command_name == "vote":
-    pass
+    return await _vote(args, author, channel)
 
   if command_name == "time":
     pass
@@ -278,4 +381,4 @@ async def handle_command(command, author, channel):
     pass
 
   if command_name == "power":
-    pass
+    return await _power(args, author, channel)
