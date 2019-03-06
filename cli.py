@@ -2,6 +2,7 @@ import discord
 import game
 
 #Helper functions
+#This breaks strings apart, reading things "in quotes" as one token.
 async def _split_tokens(xstr):
     prev_index = 0
     string_mode = False
@@ -42,6 +43,7 @@ async def _split_tokens(xstr):
 
     return converted_tokens
 
+#todo: delete this once it's obsolete
 async def _check_arguments(tokens, arg_types):
         if len(tokens) != len(arg_types):
             return False
@@ -51,7 +53,9 @@ async def _check_arguments(tokens, arg_types):
                 return False
 
         return True
-
+    
+async def _fetch_game(game_id):
+    return game.game_dict[args[0]]
 
 
 #Command functions
@@ -81,56 +85,50 @@ async def _create(args, author, channel):
 #maf!join [game id]
 async def _join(args, author, channel):
     
-    try:
-        
-        target_game = game.game_dict[args[0]]
+    try: target_game = _fetch_game(args[0])
+    except KeyError: return "No game found with that ID."
 
-        if channel != target_game.home_channel:
-            return "You may only join a game in the channel it was created in."
+    #To prevent people guessing/mistyping IDs and joining a game they can't see.
+    if channel != target_game.home_channel:
+        return "You may only join a game in the channel it was created in."
 
-        if target_game.started:
-            return "This game has already begun, and cannot be joined."
+    if target_game.started:
+        return "This game has already begun, and cannot be joined."
 
-        elif author in target_game.banned:
-            return "You have been banned from this game."
+    elif author in target_game.banned:
+        return "You have been banned from this game."
 
-        elif author in target_game.players:
-            return "You are already in this game."
+    elif author in target_game.players:
+        return "You are already in this game."
 
-        elif len(target_game.players) >= len(target_game.possible_roles):
-            return "This game is already full."
+    elif len(target_game.players) >= len(target_game.possible_roles):
+        return "This game is already full."
 
-        else:
-            target_game.players.append(author)
-            return "Game successfully joined."
-    except KeyError:
-        return "No game found with that ID."
-
+    else:
+        target_game.players.append(author)
+        return "Game successfully joined."
+    
 #maf!leave [game id]
 async def _leave(args, author, channel):
 
+    try: target_game = _fetch_game(args[0])
+    except KeyError: return "No game found with that ID."
+
+    #Ensure everybody can see that they left.
+    #Return values always replies to author directly,
+    #So a buffered message must be used instead.
+    if channel != target_game.home_channel:
+        target_game.buffer_message("{0} has left the game.".format(str(author)))
+
     try:
-        target_game = game.game_dict[args[0]]
-
-        if channel != target_game.home_channel:
-            target_game.buffer_message("{0} has left the game.".format(str(author)))
-
-        if author not in target_game.players:
-            #kill() expects a valid target
-            raise ValueError
-        
         if target_game.started:
             target_game.kill(author)
         else:
             target_game.players.remove(author)
 
         return "Game sucessfully left."
-
-    except KeyError:
-        return "No game found with that ID."
-
-    except ValueError:
-        return "You are not in this game."
+    except (KeyError, ValueError):
+        return "You aren't in that game."
 
 #maf!kick [game id] [target]
 async def _kick(args, author, channel):

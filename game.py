@@ -77,7 +77,7 @@ class _Game():
             kill(target)
     
     def kill(target):
-        target_role = player_roles.pop(target, None)
+        target_role = player_roles.pop(target)
         
         title = str(target) + ", the " + target_role.long_name
         self.buffer_message(title + ", has been found dead!")
