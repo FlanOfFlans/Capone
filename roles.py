@@ -11,7 +11,7 @@ class _Role():
     def target_power(self, args):
 
         if args[0] == "unset":
-            self.power_call = lambda _: ""
+            self.power_call = lambda _: None
             return "Power targetting reset."
 
     def try_to_kill(self, source):
@@ -50,15 +50,15 @@ class Townie(_Role):
 class Enforcer(_Role):
 
     def try_to_kill(self, source):
+        
         dying = super().try_to_kill(source)
 
         if dying:
 
-            maflist = []
-            for player in game.players:
-                role = self.player_roles[player]
-                if role.faction == "mafia" and not role.attribs.get("nopromote", False):
-                    maflist.append(player)
+            maflist = [player for player, role in self.player_roles.items()
+                       if player in game.players and
+                       role.faction == "mafia" and
+                       not role.attribs.get("no_promote", False)]            
 
             try:
                 promoted = random.choice(maflist)
@@ -69,6 +69,7 @@ class Enforcer(_Role):
         return dying
 
     def target_power(self, args):
+        
         n = super().target_power(args)
         if n != None:
             return n
@@ -79,7 +80,11 @@ class Enforcer(_Role):
                     target = player
                     break
             else:
-                return "Target player not found. Note that only usernames, not nicknames, can be used, and the discriminator (#1234) is required."
+                return ("Target player not found. "
+                        "Note that only usernames, "
+                        "not nicknames, can be used, "
+                        "and the discriminator (#1234)"
+                        "is required.")
 
             self.power_call = functools.partial(game.try_to_kill, [target, self])
             return "Target set."
@@ -101,8 +106,6 @@ class Goon(_Role):
     long_name = "Goon"
     description = "Scummy, but harmless. Cooperate with the mafia to take down the town."
 
-
-#todo: Maybe make this automatic?
 role_dict = {
     "town":Townie,
     "enforcer":Enforcer,

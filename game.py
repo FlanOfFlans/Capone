@@ -4,24 +4,32 @@ import roles
 
 #Unstarted games older than this will be culled
 _MAX_UNSTARTED_AGE = 4230 #72 hours
+
 #Started games older than this will be culled
 #Age resets when starting
 _MAX_STARTED_AGE = 30240 #3 weeks
 
 game_dict = {}
 
-def _generate_id():
+def _generate_id(depth=0):
+
+    if depth >= 5 and depth % 5 == 0:
+        print("Spending a lot of time regenerating IDs!")
+    
     hex_str = hex(round(time.time()))
+    
     #remove leading '0x', add hyphen after 4 hex characters
-    hex_str = hex_str[2:6] + '-' + hex_str[6:len(hex_str)]
+    hex_str = hex_str[2:6] + '-' + hex_str[6:]
+    
     #1-digit hex number
     randomized = hex(random.randint(1, 15))
+    
     #remove leading '0x' from this too
-    hex_str += randomized[2:len(randomized)]
+    hex_str += randomized[2:]
 
     #recurse until we get a unique ID
     if hex_str in game_dict:
-        return _generate_id()
+        return _generate_id(depth + 1)
     else:
         return hex_str
 
@@ -55,22 +63,26 @@ class _Game():
         self.culled = False
         game_dict[self.id] = self
 
-    #Runs once per minute, but first tick may be shorter
+    #Runs once per minute
     def tick(self):
         self.age += 1
 
-        self._cull()
+        #Flags game for culling
+        #The tick loop handles actually culling the game
+        if not self.started and self.age > _MAX_UNSTARTED_AGE:
+            self.culled = True
 
-        if not self.started: return
-        
-        self.remaining_phase_time -= 1
+        if self.started and self.age > _MAX_STARTED_AGE:
+            self.culled = True
 
-        if self.is_day and self.remaining_phase_time == 0:
-            self._dusk()
+        if self.started:
+            self.remaining_phase_time -= 1
 
-        elif not self.is_day and self.remaining_phase_time == 0:
-            self._dawn()
-        
+            if self.is_day and self.remaining_phase_time == 0:
+                self._dusk()
+
+            elif not self.is_day and self.remaining_phase_time == 0:
+                self._dawn()
 
     def try_to_kill(target, source):
         if target.try_to_kill(source):
@@ -118,17 +130,6 @@ class _Game():
             self.vote_dict[player] = 0
         
         self.buffer_message("The game has started!")
-            
-            
-
-    def _cull(self):
-        #The tick loop handles actually culling the game
-        if not self.started and self.age > _MAX_UNSTARTED_AGE:
-            self.culled = True
-        if self.started and self.age > _MAX_STARTED_AGE:
-            self.culled = True
-            
-
 
     def _dusk(self):
         self.buffer_message("It is now night! Town players should refrain from talking to one another at night.")
@@ -158,7 +159,6 @@ class _Game():
         for role in roles:
             role.dawn()
   
-
 
     
 async def create_game(role_strings, phase_time, owner, home_channel):
