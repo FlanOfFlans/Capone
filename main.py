@@ -2,6 +2,7 @@ import discord
 import asyncio
 import cli
 import game
+from collections import defaultdict
 
 client = discord.Client()
 prefix = "maf!"
@@ -23,10 +24,12 @@ async def on_message(message):
     return
 
   #Chop off prefix
-  command_string = message.content[len(prefix):len(message.content)]
+  command = message.content[len(prefix):]
+  author = message.author
+  channel = message.channel
 
   #Handle the effects of the command, and pass the results to Discord.
-  output = await cli.handle_command(command_string, message.author, message.channel)
+  output = await cli.handle_command(command, author, channel)
 
   if output != None:
     await client.send_message(message.channel, output)
@@ -44,26 +47,26 @@ async def tick_games():
 
       #If the game is beyond the current maximum age, kill it, and provide the cull message.
       if current_game.culled:
-        await client.send_message(current_game.home_channel, CULL_MESSAGE)
+        message = "Game {0}: {1}".format(game_id, CULL_MESSAGE)
+        await client.send_message(current_game.home_channel, message)
         del game.game_dict[game_id]
 
-      else:
-        #Clumps all output to a given channel into one string. 
-        output_dict = {}
+      
+      #Clumps all output to a given channel into one string.
+      #If no key is found, it's an empty list
+      output_dict = defaultdict(list)
 
-        for message in current_game.output_buffer:
-          #If a channel has no entry in the dictionary, make one.
-          try: output_dict[message[1]].append(message[0])
-          except KeyError: output_dict[message[1]] = [message[0]]
+      for message in current_game.output_buffer:
+        output_dict[message[1]].append(message[0])
 
-        #Output everything in output dict to the appropriate channel
-        for item in xdict.items():
-          message = "\n".join(item[1])
-          message = ("Game {0}:\n```\n" + message + "\n```").format(game_id)
-          await client.send_message(item[0], message)
+      #Output everything in output dict to the appropriate channel
+      for item in xdict.items():
+        message = "\n".join(item[1])
+        message = ("Game {0}:\n```\n" + message + "\n```").format(game_id)
+        await client.send_message(item[0], message)
 
-        #Clear the buffer
-        current_game.output_buffer = []
+      #Clear the buffer
+      current_game.output_buffer = []
     #Run this again in 60 seconds
     await asyncio.sleep(60)
 

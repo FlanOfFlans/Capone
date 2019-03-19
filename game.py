@@ -166,7 +166,7 @@ async def create_game(role_strings, phase_time, owner, home_channel):
     role_strings = role_strings.split(" ")
     role_list = []
 
-    if phase_time <= 1:
+    if phase_time < 1:
         return -2
 
     for role_string in role_strings:

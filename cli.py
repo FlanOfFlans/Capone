@@ -11,29 +11,34 @@ async def _split_tokens(xstr):
     for index in range(0, len(xstr)):
 
         to_append = ""
-        
+
+        #Break token on spaces
         if (not string_mode) and xstr[index] == " " :
             if index == prev_index: continue
+            
             to_append = xstr[prev_index:index]
             prev_index = index + 1
-            
+
+        #Start scanning a string
         elif (not string_mode) and xstr[index] == "\"":
             string_mode = True
             prev_index = index + 1
 
+        #Stop scanning a string
         elif string_mode and xstr[index] == "\"":
             string_mode = False
+
             to_append = xstr[prev_index:index]
             prev_index = index + 2
 
         if to_append != "":
             tokens.append(to_append)
 
-            
-    if xstr[prev_index:len(xstr)] != "":
-        tokens.append(xstr[prev_index:len(xstr)])
+    #Don't lose the last token!
+    if xstr[prev_index:] != "":
+        tokens.append( xstr[prev_index:] )
 
-    #convert to ints where possible, to aid type checking
+    #Convert to ints where possible
     converted_tokens = []
     for token in tokens:
         try:
@@ -42,45 +47,37 @@ async def _split_tokens(xstr):
             converted_tokens.append(token)
 
     return converted_tokens
-
-#todo: delete this once it's obsolete
-async def _check_arguments(tokens, arg_types):
-        if len(tokens) != len(arg_types):
-            return False
-
-        for i in range(0, len(tokens)):
-            if type(tokens[i]) != arg_types[i]:
-                return False
-
-        return True
     
 async def _fetch_game(game_id):
     return game.game_dict[args[0]]
 
 
 #Command functions
-#todo: make this EAFP
 #maf!create [roles] [phase time]
 async def _create(args, author, channel):
 
     if type(channel) == discord.PrivateChannel:
         return "Games cannot be created in DMs. Please try again in a server."
 
-    elif await _check_arguments(args, [str, int]):
+    try:
         new_game = await game.create_game(args[0], args[1], author, channel)
+    except TypeError:
+        return "Phase time must be a number."
+    except AttributeError:
+        return "Role list must be a string. Did you enclose it in quotes?"
 
-        if new_game == -1:
-            return "Invalid role in role list."
-        if new_game == -2:
-            return "Phases must be at least two minutes long."
+    if new_game == -1:
+        return "Invalid role in role list."
+    if new_game == -2:
+        return "Phases must be at least one minutes long."
         
-        outstr = ("Owner: {0}\n"
-                 "Roles: {1}\n"
-                 "ID: {2}\n").format(
-                     new_game.owner.name,
-                     args[0].replace(' ', ', '),
-                     new_game.id)
-        return outstr
+    outstr = ("Owner: {0}\n"
+              "Roles: {1}\n"
+              "ID: {2}\n").format(
+              new_game.owner.name,
+              args[0].replace(' ', ', '),
+              new_game.id)
+    return outstr
 
 #maf!join [game id]
 async def _join(args, author, channel):
@@ -133,129 +130,128 @@ async def _leave(args, author, channel):
 #maf!kick [game id] [target]
 async def _kick(args, author, channel):
 
-    try:
-        target_game = game.game_dict[args[0]]
+    try: target_game = _fetch_game(args[0])
+    except KeyError: return "No games found with that ID."
 
+    if author != target_game.owner:
+        return "You do not own this game."
 
+    for player in target_game.players:
+        if args[1] == str(player):
+            target = player
+            break
+    else:
+        return ("Target player not found. "
+                "Note that only usernames, "
+                "not nicknames, can be used, "
+                "and the discriminator (#1234)"
+                "is required.")
 
-        for player in target_game.players:
-            if args[1] == str(player):
-                target = player
-                break
-        else:
-            raise ValueError
+    #Ensure everybody can see it.
+    if channel != target_game.home_channel:
 
-        if channel != target_game.home_channel:
-            target_game.buffer_message("{0} has been kicked by the owner.".format(str(player)))
+        target_game.buffer_message("{0} has been kicked by the owner."
+            .format( str(player) ))
+    
+    if target_game.started:
+        kill(target)
+    else:
+        target_game.players.remove(target)
 
-        if author != target_game.owner:
-            return "You do not own this game."
-        else:
-            if target_game.started:
-                kill(target)
-            else:
-                target_game.players.remove(target)
-
-            return "Player has been kicked."
-
-    except KeyError:
-        return "No game found with that ID."
-
-    except ValueError:
-        return "Target player not found. Note that only usernames, not nicknames, can be used, and the discriminator (#1234) is required."
+    return "Player has been kicked."
 
 #maf!ban [game id] [target]
 async def _ban(args, author, channel):
-
+    
     try:
-        target_game = game.game_dict[args[0]]
-
-        if channel != target_game.home_channel:
-            target_game.buffer_message("{0} has been banned by the owner.".format(str(author)))
-
-        for member in channel.server.members:
-            if args[1] == str(member):
-                target = member
-                break
-            
-        #Note: else belongs to for, not if
-        else:
-            raise ValueError
-
-        if author != target_game.owner:
+        target_game = _fetch_game(args[0])
+    except:
+        return "No game found with that ID."
+    
+    if author != target_game.owner:
             return "You do not own this game."
 
-        if target in target_game.banned:
+    if target in target_game.banned:
             return "User is already banned."
 
-        if channel != target_game.home_channel:
-            target_game.buffer_message("{0} has been banned by the owner.".format(str(target)))
-
-        try:
-            if target_game.started and target in target_game.players:
-                kill(target)
-            else:
-                target_game.players.remove(target)
-
-        except ValueError:
-            #Banning players not in the game yet is expected
-            pass
-
-        target_game.banned.append(target)
-        return "User has been banned."
-
-    except KeyError:
-        return "No game found with that ID."
-
-    except ValueError:
-        return "Target user not found. Note that only usernames, not nicknames, can be used, and the discriminator (#1234) is required. Additionally, they must be present in this server."
     
+    for member in channel.server.members:
+        if args[1] == str(member):
+            target = member
+            break
+        
+    else:
+        return ("Target player not found. "
+                "Note that only usernames, "
+                "not nicknames, can be used, "
+                "and the discriminator (#1234)"
+                "is required.")
+
+    #Ensure everybody can see it
+    if channel != target_game.home_channel:
+        target_game.buffer_message("{0} has been banned by the owner."
+            .format(str(target)))
+
+    try:
+        if target_game.started and target in target_game.players:
+            kill(target)
+        else:
+            target_game.players.remove(target)
+            
+    #Banning players not in the game yet is expected
+    except ValueError:
+        pass
+
+    target_game.banned.append(target)
+    return "User has been banned."
+
 #maf!unban [game id] [target]
 async def _unban(args, author, channel):
 
     try:
-        target_game = game.game_dict[args[0]]
-
-        for member in channel.server.members:
-            if args[1] == str(member):
-                target = member
-                break
-            
-        #Note: else belongs to for, not if
-        else:
-            raise ValueError
-
-        if author != target_game.owner:
-            return "You do not own this game."
-
-
-        try: target_game.banned.remove(target)
-        except ValueError: return "That user is not banned."
-
-        if channel != target_game.home_channel:
-            target_game.buffer_message("{0} has been unbanned by the owner.".format(str(target)))
-
-        return "User has been unbanned."
-
-    except KeyError:
+        target_game = fetch_game(args[0])
+    except ValueError:
         return "No game found with that ID."
 
-    except ValueError:
-        return "Target user not found. Note that only usernames, not nicknames, can be used, and the discriminator (#1234) is required. Additionally, they must be present in this server."
+    if author != target_game.owner:
+        return "You do not own this game."
+    
+
+
+    for member in channel.server.members:
+        if args[1] == str(member):
+            target = member
+            break
+    else:
+        return ("Target player not found. "
+                "Note that only usernames, "
+                "not nicknames, can be used, "
+                "and the discriminator (#1234)"
+                "is required.")
+    
+    try: target_game.banned.remove(target)
+    except ValueError: return "That user is not banned."
+
+    if channel != target_game.home_channel:
+        target_game.buffer_message("{0} has been unbanned by the owner"
+            .format(str(target)))
+
+    return "User has been unbanned."
 
 #maf!start [game id]
-async def _start(args, author):
+async def _start(args, author, channel):
+
     try:
-        target_game = game.game_dict[args[0]]
-
-        if author != target_game.owner:
-            return "You do not own this game."
-
-        target_game.start()
-        return "Game queued to be started!"
-
-    except KeyError:
+        target_game = fetch_game(args[0])
+    except:
         return "No game found with that ID."
+
+    if author != target_game.owner:
+            return "You do not own this game."
+    
+    
+    target_game.start()
+    return "Game queued to be started!"
 
 #maf!vote [game id] [target]
 async def _vote(args, author, channel):
@@ -305,7 +301,7 @@ async def _vote(args, author, channel):
         return "Target user not found. Note that only usernames, not nicknames, can be used, and the discriminator (#1234) is required."
 
 #maf!voteinfo [game id]
-async def _voteinfo(args):
+async def _voteinfo(args, author, channel):
     target_game = game.game_dict[args[0]]
 
     out_list = []
@@ -338,45 +334,38 @@ async def _power(args, author, channel):
 
     player.target_power(args[1:len(args)])
 
+#maf!time [game id]
+async def _time(args, author, channel):
+    raise NotImplementedError
+
+#maf!maflist [game id]
+async def _maflist(args, author, channel):
+    raise NotImplementedError
     
-    
+commands = (
+{
+    "create"   : _create,
+    "join"     : _join,
+    "leave"    : _leave,
+    "kick"     : _kick,
+    "ban"      : _ban,
+    "unban"    : _unban,
+    "start"    : _start,
+    "vote"     : _vote,
+    "voteinfo" : _voteinfo,
+    "power"    : _power,
+    "time"     : _time,
+    "maflist"  : _maflist
+})
+
 async def handle_command(command, author, channel):
 
-  split_message = await _split_tokens(command)
-  command_name = split_message[0]
-  args = split_message[1:len(split_message)]
-    
-  if command_name == "create":
-    return await _create(args, author, channel)
-    
-  if command_name == "join":
-    return await _join(args, author, channel)
+    split_message = await _split_tokens(command)
+    command_name = split_message[0]
+    args = split_message[1:]
 
-  if command_name == "leave":
-    return await _leave(args, author, channel)
-
-
-  if command_name == "kick":
-    return await _kick(args, author, channel)
-
-  if command_name == "ban":
-    return await _ban(args, author, channel)
-
-  if command_name == "unban":
-    return await _unban(args, author, channel)
-
-  if command_name == "start":
-    return await _start(args, author)
-
-
-  if command_name == "vote":
-    return await _vote(args, author, channel)
-
-  if command_name == "time":
-    pass
-
-  if command_name == "maflist":
-    pass
-
-  if command_name == "power":
-    return await _power(args, author, channel)
+    try:
+        command_func = commands[command_name]
+        return await command_func(args, author, channel)
+    except:
+        return None
