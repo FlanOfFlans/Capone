@@ -4,10 +4,11 @@ import math
 
 NOT_OWNER_MESSAGE = "You do not own this game."
 BAD_ID_MESSAGE = "No game found with that ID."
+BAD_ARGS_MESSAGE = "Insufficient arguments for that command."
 BAD_USER_MESSAGE = ("Target player not found. "
                     "Note that only usernames, "
                     "not nicknames, can be used, "
-                    "and the discriminator (#1234)"
+                    "and the discriminator (#1234) "
                     "is required.")
 
 #Helper functions
@@ -58,7 +59,7 @@ async def _split_tokens(xstr):
     return converted_tokens
     
 async def _fetch_game(game_id):
-    return game.game_dict[args[0]]
+    return game.game_dict[game_id]
 
 
 #Command functions
@@ -93,9 +94,14 @@ async def _delete(args, author, channel):
 
 #maf!join [game id]
 async def _join(args, author, channel):
+
+    if len(args) < 1:
+        return BAD_ARGS_MESSAGE
     
-    try: target_game = _fetch_game(args[0])
-    except KeyError: return BAD_ID_MESSAGE
+    try:
+        target_game = await _fetch_game(args[0])
+    except KeyError:
+        return BAD_ID_MESSAGE
 
     #To prevent people guessing/mistyping IDs and joining a game they can't see.
     if channel != target_game.home_channel:
@@ -120,8 +126,11 @@ async def _join(args, author, channel):
 #maf!leave [game id]
 async def _leave(args, author, channel):
 
+    if len(args) < 1:
+        return BAD_ARGS_MESSAGE
+
     try:
-        target_game = _fetch_game(args[0])
+        target_game = await _fetch_game(args[0])
     except KeyError:
         return BAD_ID_MESSAGE
 
@@ -145,8 +154,11 @@ async def _leave(args, author, channel):
 #maf!kick [game id] [target]
 async def _kick(args, author, channel):
 
+    if len(args) < 2:
+        return BAD_ARGS_MESSAGE
+
     try:
-        target_game = _fetch_game(args[0])
+        target_game = await _fetch_game(args[0])
     except KeyError:
         return BAD_ID_MESSAGE
 
@@ -175,9 +187,12 @@ async def _kick(args, author, channel):
 
 #maf!ban [game id] [target]
 async def _ban(args, author, channel):
+
+    if len(args) < 2:
+        return BAD_ARGS_MESSAGE
     
     try:
-        target_game = _fetch_game(args[0])
+        target_game = await _fetch_game(args[0])
     except KeyError:
         return BAD_ID_MESSAGE
     
@@ -217,8 +232,11 @@ async def _ban(args, author, channel):
 #maf!unban [game id] [target]
 async def _unban(args, author, channel):
 
+    if len(args) < 2:
+        return BAD_ARGS_MESSAGE
+
     try:
-        target_game = _fetch_game(args[0])
+        target_game = await _fetch_game(args[0])
     except ValueError:
         return BAD_ID_MESSAGE
 
@@ -234,8 +252,10 @@ async def _unban(args, author, channel):
     else:
         return BAD_USER_MESSAGE
     
-    try: target_game.banned.remove(target)
-    except ValueError: return "That user is not banned."
+    try:
+        target_game.banned.remove(target)
+    except ValueError:
+        return "That user is not banned."
 
     if channel != target_game.home_channel:
         target_game.buffer_message("{0} has been unbanned by the owner"
@@ -246,8 +266,11 @@ async def _unban(args, author, channel):
 #maf!start [game id]
 async def _start(args, author, channel):
 
+    if len(args) < 1:
+        return BAD_ARGS_MESSAGE
+
     try:
-        target_game = _fetch_game(args[0])
+        target_game = await _fetch_game(args[0])
     except KeyError:
         return BAD_ID_MESSAGE
 
@@ -261,10 +284,17 @@ async def _start(args, author, channel):
 #maf!vote [game id] [target]
 async def _vote(args, author, channel):
 
+    if len(args) < 2:
+        return BAD_ARGS_MESSAGE
+
     try:
-        target_game = _fetch_game(args[0]])
+        target_game = await _fetch_game(args[0])
     except KeyError:
         return BAD_ID_MESSAGE
+
+    #debug
+    for player in target_game.players:
+        print(str(player))
 
     if not target_game.started:
         return "This game has not started yet."
@@ -274,6 +304,12 @@ async def _vote(args, author, channel):
 
     if channel != target_game.home_channel:
         return "You may only vote in the channel the game was created in."
+
+    if not target_game.can_vote:
+        return "Tonight's hanging has already been decided."
+
+    if not target_game.is_day:
+        return "You may only vote during the day."
 
     role = target_game.player_roles[author]
 
@@ -287,12 +323,14 @@ async def _vote(args, author, channel):
     if target not in target_game.player_roles:
         return "That person is already dead."
 
+    #Voting for the same person twice unvotes
     if role.voted_for == target:
         role.voted_for = None
         target_game.vote_dict[target] -= 1
         return "Vote reset."
 
     else:
+        #Remove previous vote
         if role.voted_for != None:
             target_game.vote_dict[role.voted_for] -= 1
         role.voted_for = target
@@ -300,17 +338,25 @@ async def _vote(args, author, channel):
 
     if target_game.vote_dict[target] >= math.ceil(len(target_game.player_roles) / 2):
         target_game.kill(target)
+        return "It is decided; {0} shall hang.".format(str(target))
+    else:
+        return "Vote cast."
+
 
 
 
 #maf!voteinfo [game id]
 async def _voteinfo(args, author, channel):
+
+    if len(args) < 1:
+        return BAD_ARGS_MESSAGE
+    
     try:
-        target_game = _fetch_game(args[0])
+        target_game = await _fetch_game(args[0])
     except KeyError:
         return BAD_ID_MESSAGE
 
-    out_list = []
+    outlist = []
     for player in target_game.players:
         xstr = str(player) + " - "
 
@@ -320,7 +366,7 @@ async def _voteinfo(args, author, channel):
             xstr += str(target_game.vote_dict[player])
         outlist.append(xstr)
 
-    return "\n".join(out_list)
+    return "\n".join(outlist)
         
 #maf!power [game id] [args depend on power]
 async def _power(args, author, channel):
@@ -328,8 +374,11 @@ async def _power(args, author, channel):
     if type(channel) != discord.PrivateChannel:
         return "Powers cannot be used outside of DMs. You are encouraged to delete the command."
 
+    if len(args) < 2:
+        return BAD_ARGS_MESSAGE
+
     try:
-        target_game = _fetch_game(args[0])
+        target_game = await _fetch_game(args[0])
     except KeyError:
         return BAD_ID_MESSAGE
 
@@ -343,8 +392,13 @@ async def _power(args, author, channel):
 #maf!time [game id]
 async def _time(args, author, channel):
 
+    if len(args) < 1:
+        return BAD_ARGS_MESSAGE
+    
+    if not started:
+        return "This game has not yet started."
     try:
-        target_game = _fetch_game(args[0])
+        target_game = await _fetch_game(args[0])
     except KeyError:
         return BAD_ID_MESSAGE
 

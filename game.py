@@ -43,8 +43,9 @@ class _Game():
         self.banned = []
 
         self.phase_length = phase_time
-        self.remaining_phase_time = phase_time
-        self.is_day = True
+        self.remaining_phase_time = 0
+        self.is_day = False
+        self.can_vote = True
 
         self.possible_roles = role_list
         self.player_roles = {}
@@ -87,8 +88,8 @@ class _Game():
         if target.try_to_kill(source):
             kill(target)
     
-    def kill(target):
-        target_role = player_roles.pop(target)
+    def kill(self, target):
+        target_role = self.player_roles.pop(target)
         
         title = str(target) + ", the " + target_role.long_name
         self.buffer_message(title + ", has been found dead!")
@@ -115,13 +116,13 @@ class _Game():
         self.age = 0
         self.started = True
 
-        unchosen_players = self.players
+        unchosen_players = self.players.copy()
         for role in self.possible_roles:
             chosen_player = random.choice(unchosen_players)
             unchosen_players.remove(chosen_player)
 
             self.player_roles[chosen_player] = role(self)
-            self.buffer_message(("You are **{0}**!\n"
+            self.buffer_message(("Your role is **{0}**!\n"
                             "{1}").format(role.long_name, role.description),
                             chosen_player)
 
@@ -145,6 +146,7 @@ class _Game():
         self.buffer_message("It is now day! Town players may talk freely.")
 
         self.is_day = True
+        self.can_vote = True
         self.remaining_phase_time = self.phase_length
 
         #Sort by priority, highest to lowest

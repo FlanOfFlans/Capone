@@ -37,7 +37,7 @@ async def on_message(message):
   except:
     exc = format_exc()
     print(exc)
-    output = ("An error has occured. You are encouraged to open an issue at https://github.com/FlanOfFlans/Capone/issues\n"
+    output = ("An error has occured. You are encouraged to open an issue at <https://github.com/FlanOfFlans/Capone/issues>\n"
               "Please include the roles in the game, and what happened to cause this error, as well as the following error message.\n"
               "You may continue the game, but further errors and strange behavior may occur. Deleting this game and starting a new one is encouraged.\n\n"
               "```\n{0}\n```"
@@ -72,7 +72,7 @@ async def tick_games():
         output_dict[message[1]].append(message[0])
 
       #Output everything in output dict to the appropriate channel
-      for item in xdict.items():
+      for item in output_dict.items():
         message = "\n".join(item[1])
         message = ("Game {0}:\n```\n" + message + "\n```").format(game_id)
         await client.send_message(item[0], message)
