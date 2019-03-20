@@ -49,7 +49,6 @@ class _Game():
         self.possible_roles = role_list
         self.player_roles = {}
         self.all_players = {} #includes dead people
-
         
         self.started = False
         self.age = 0
@@ -78,10 +77,10 @@ class _Game():
         if self.started:
             self.remaining_phase_time -= 1
 
-            if self.is_day and self.remaining_phase_time == 0:
+            if self.is_day and self.remaining_phase_time <= 0:
                 self._dusk()
 
-            elif not self.is_day and self.remaining_phase_time == 0:
+            elif not self.is_day and self.remaining_phase_time <= 0:
                 self._dawn()
 
     def try_to_kill(target, source):

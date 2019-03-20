@@ -3,6 +3,7 @@ import asyncio
 import cli
 import game
 from collections import defaultdict
+from traceback import format_exc
 
 client = discord.Client()
 prefix = "maf!"
@@ -29,7 +30,18 @@ async def on_message(message):
   channel = message.channel
 
   #Handle the effects of the command, and pass the results to Discord.
-  output = await cli.handle_command(command, author, channel)
+  try:
+    output = await cli.handle_command(command, author, channel)
+  except NotImplementedError:
+    output = "Unfortunately, that command is not available in the current version of Capone."
+  except:
+    exc = format_exc()
+    print(exc)
+    output = ("An error has occured. You are encouraged to open an issue at https://github.com/FlanOfFlans/Capone/issues\n"
+              "Please include the roles in the game, and what happened to cause this error, as well as the following error message.\n"
+              "You may continue the game, but further errors and strange behavior may occur. Deleting this game and starting a new one is encouraged.\n\n"
+              "```\n{0}\n```"
+              ).format(exc)
 
   if output != None:
     await client.send_message(message.channel, output)
