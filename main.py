@@ -83,4 +83,8 @@ async def tick_games():
     await asyncio.sleep(60)
 
 client.loop.create_task(tick_games())
-#client.run(token)
+
+token = open("capone.ini").readline()
+token = token.replace("\n", "")
+
+client.run(token)
