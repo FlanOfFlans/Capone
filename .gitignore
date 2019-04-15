@@ -1,2 +1,5 @@
-/__pycache__/
-/capone.ini/
+#ignore pycache, so we don't clog things up
+__pycache__/
+
+#ignore init files, so we stop publishing tokens
+capone.ini/
