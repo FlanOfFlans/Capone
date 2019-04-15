@@ -99,11 +99,9 @@ if len(argv) == 1:
 elif argv[2] == "test":
     try:
         test = getattr(tests, argv[1])
+        test()
     except AttributeError:
         print("No such test.")
-        test = lambda : None
-
-    test()
     
     if len(argv) > 3 and argv[3] == "continue":
         start_capone()
