@@ -64,7 +64,9 @@ async def _fetch_game(game_id):
 
 #Command functions
 #maf!create [roles] [phase time]
-async def _create(args, author, channel):
+#simple_output is for testing
+#forces function to just return ID
+async def _create(args, author, channel, simple_output=False):
 
     if type(channel) == discord.PrivateChannel:
         return "Games cannot be created in DMs. Please try again in a server."
@@ -81,12 +83,16 @@ async def _create(args, author, channel):
     if new_game == -2:
         return "Phases must be at least one minutes long."
         
-    outstr = ("Owner: {0}\n"
-              "Roles: {1}\n"
-              "ID: {2}\n").format(
-              new_game.owner.name,
-              args[0].replace(' ', ', '),
-              new_game.id)
+    if not simple_output:
+        outstr = ("Owner: {0}\n"
+                  "Roles: {1}\n"
+                  "ID: {2}\n").format(
+                  new_game.owner.name,
+                  args[0].replace(' ', ', '),
+                  new_game.id)
+    else:
+        outstr = new_game.id
+
     return outstr
 
 async def _delete(args, author, channel):
@@ -307,10 +313,6 @@ async def _vote(args, author, channel):
     except KeyError:
         return BAD_ID_MESSAGE
 
-    #debug
-    for player in target_game.players:
-        print(str(player))
-
     if not target_game.started:
         return "This game has not started yet."
     
@@ -384,9 +386,13 @@ async def _voteinfo(args, author, channel):
     return "\n".join(outlist)
         
 #maf!power [game id] [args depend on power]
-async def _power(args, author, channel):
+#force_private is for testing
+#proper mock channels cannot be created,
+#so force private makes it treat
+#a mock channel as a private message
+async def _power(args, author, channel, force_private=False):
 
-    if type(channel) != discord.PrivateChannel:
+    if not force_private and type(channel) != discord.PrivateChannel:
         return "Powers cannot be used outside of DMs. You are encouraged to delete the command."
 
     if len(args) < 2:

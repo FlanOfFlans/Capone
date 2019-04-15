@@ -2,8 +2,10 @@ import discord
 import asyncio
 import cli
 import game
+import tests
 from collections import defaultdict
 from traceback import format_exc
+from sys import argv
 
 client = discord.Client()
 prefix = "maf!"
@@ -82,9 +84,26 @@ async def tick_games():
     #Run this again in 60 seconds
     await asyncio.sleep(60)
 
-client.loop.create_task(tick_games())
+def start_capone():
+    client.loop.create_task(tick_games())
 
-token = open("capone.ini").readline()
-token = token.replace("\n", "")
+    token = open("capone.ini").readline()
+    token = token.replace("\n", "")
 
-client.run(token)
+    client.run(token)
+
+#argv contains commandline arguments
+if len(argv) == 1:
+    start_capone()
+
+elif argv[2] == "test":
+    try:
+        test = getattr(tests, argv[1])
+    except AttributeError:
+        print("No such test.")
+        test = lambda : None
+
+    test()
+    
+    if len(argv) > 3 and argv[3] == "continue":
+        start_capone()
