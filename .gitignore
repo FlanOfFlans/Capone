@@ -2,4 +2,4 @@
 __pycache__/
 
 #ignore init files, so we stop publishing tokens
-capone.ini/
+capone.ini

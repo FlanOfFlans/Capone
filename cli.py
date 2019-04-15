@@ -90,7 +90,22 @@ async def _create(args, author, channel):
     return outstr
 
 async def _delete(args, author, channel):
-    raise NotImplementedError
+    if len(args) < 1:
+        return BAD_ARGS_MESSAGE
+
+    try:
+        target_game = await _fetch_game(args[0])
+    except KeyError:
+        return BAD_ID_MESSAGE
+
+    if channel != target_game.home_channel:
+        return "You may only delete a game in the channel it was created in."
+    
+    if author != target_game.owner:
+        return NOT_OWNER_MESSAGE
+
+
+
 
 #maf!join [game id]
 async def _join(args, author, channel):
