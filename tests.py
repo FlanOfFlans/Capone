@@ -1,5 +1,8 @@
 import cli
+import asyncio
 import main
+from sys import argv
+
 
 class MockServer():
     def __init__(self, members):
@@ -16,17 +19,35 @@ class MockUser():
 
     def __str__(self):
         return "{0}#{1}".format(username, discriminator)
+#contains test functions for getattr()
 
-def quick_test(args):
-    game_args = ["townie", 2]
-    player = MockUser("test", 1234)
-    server = MockServer([player])
-    channel = MockChannel(server)
+class TestDummy():
+    async def basic_creation_test(args):
+        print("Starting quick test!")
 
-    game_id = cli._create_game(game_args, player, channel, True)
-    cli._start(game_id, player, channel)
+        game_args = ["town", 1]
+        player = MockUser("test", 1234)
+        server = MockServer([player])
+        channel = MockChannel(server)
 
-    print("Game has been started.")
-    if len(args) > 3 and args[3] == "continue":
+        game_id = await cli._create(game_args, player, channel, True)
+        print("Game has been created with 1 townie")
+
+        await cli._start(game_id, player, channel)
+
         print(game_id)
 
+async def run_test():
+    try:
+        test = getattr(TestDummy, argv[1])
+    except AttributeError:
+        print("No such test.")
+    else:
+        await test(argv)
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(run_test())
+
+if len(argv) > 2 and argv[2] == "continue":
+    client = main.setup_capone(loop)
+    main.start_capone(client)

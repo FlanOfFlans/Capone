@@ -2,54 +2,56 @@ import discord
 import asyncio
 import cli
 import game
-import tests
 from collections import defaultdict
 from traceback import format_exc
-from sys import argv
 
-client = discord.Client()
 prefix = "maf!"
 
 CULL_MESSAGE = ("To save my host's resources, this game has been culled after going on too long. "
                 "If this game was still active, and you frequently encounter this problem, please contact the developer. "
                 "Currently, games can last for 3 days after being created, or 3 weeks after being started.")
 
-@client.event
-async def on_ready():
-  #Mostly for debugging
-  print("Capone is ready!")
+def setup_capone(loop = None):
+    client = discord.Client()
 
-@client.event
-async def on_message(message):
+    @client.event
+    async def on_ready():
+      #Mostly for debugging
+      print("Capone is ready!")
 
-  #Ignore messages that are not aimed at Capone
-  if not message.content.startswith(prefix):
-    return
+    @client.event
+    async def on_message(message):
 
-  #Chop off prefix
-  command = message.content[len(prefix):]
-  author = message.author
-  channel = message.channel
+      #Ignore messages that are not aimed at Capone
+      if not message.content.startswith(prefix):
+        return
 
-  #Handle the effects of the command, and pass the results to Discord.
-  try:
-    output = await cli.handle_command(command, author, channel)
-  except NotImplementedError:
-    output = "Unfortunately, that command is not available in the current version of Capone."
-  except:
-    exc = format_exc()
-    print(exc)
-    output = ("An error has occured. You are encouraged to open an issue at <https://github.com/FlanOfFlans/Capone/issues>\n"
-              "Please include the roles in the game, and what happened to cause this error, as well as the following error message.\n"
-              "You may continue the game, but further errors and strange behavior may occur. Deleting this game and starting a new one is encouraged.\n\n"
-              "```\n{0}\n```"
-              ).format(exc)
+      #Chop off prefix
+      command = message.content[len(prefix):]
+      author = message.author
+      channel = message.channel
 
-  if output != None:
-    await client.send_message(message.channel, output)
+      #Handle the effects of the command, and pass the results to Discord.
+      try:
+        output = await cli.handle_command(command, author, channel)
+      except NotImplementedError:
+        output = "Unfortunately, that command is not available in the current version of Capone."
+      except:
+        exc = format_exc()
+        print(exc)
+        output = ("An error has occured. You are encouraged to open an issue at <https://github.com/FlanOfFlans/Capone/issues>\n"
+                  "Please include the roles in the game, and what happened to cause this error, as well as the following error message.\n"
+                  "You may continue the game, but further errors and strange behavior may occur. Deleting this game and starting a new one is encouraged.\n\n"
+                  "```\n{0}\n```"
+                  ).format(exc)
+
+      if output != None:
+        await client.send_message(message.channel, output)
+
+    return client
 
 #Runs once per minute.
-async def tick_games():
+async def tick_games(client):
   #Prevents this from running before the bot is operational.
   await client.wait_until_ready()
 
@@ -84,26 +86,15 @@ async def tick_games():
     #Run this again in 60 seconds
     await asyncio.sleep(60)
 
-def start_capone():
-    client.loop.create_task(tick_games())
+def start_capone(client):
+    client.loop.create_task(tick_games(client))
 
     token = open("capone.ini").readline()
     token = token.replace("\n", "")
 
     client.run(token)
 
-#argv contains commandline arguments
-if len(argv) == 1:
-    start_capone()
+if __name__ == "__main__":
+    client = setup_capone()
+    start_capone(client)
 
-elif argv[2] == "test":
-    try:
-        test = getattr(tests, argv[1])
-    except AttributeError:
-        print("No such test.")
-        test = lambda : None
-
-    test()
-    
-    if len(argv) > 3 and argv[3] == "continue":
-        start_capone()
