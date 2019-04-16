@@ -97,4 +97,3 @@ def start_capone(client):
 if __name__ == "__main__":
     client = setup_capone()
     start_capone(client)
-
