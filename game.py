@@ -84,8 +84,8 @@ class _Game():
             elif not self.is_day and self.remaining_phase_time <= 0:
                 self._dawn()
 
-    def try_to_kill(target, source):
-        if target.try_to_kill(source):
+    def try_to_kill(self, target, source):
+        if target.can_be_killed(source):
             kill(target)
     
     def kill(self, target):
@@ -164,7 +164,7 @@ class _Game():
     
 async def create_game(role_strings, phase_time, owner, home_channel):
 
-    role_strings = role_strings.split(" ")
+    role_strings = role_strings.split(",")
     role_list = []
 
     if phase_time < 1:

@@ -32,8 +32,7 @@ async def _split_tokens(xstr):
         #Start scanning a string
         elif (not string_mode) and xstr[index] == "\"":
             string_mode = True
-            prev_index = index + 1
-
+            prev_index = index + 1 
         #Stop scanning a string
         elif string_mode and xstr[index] == "\"":
             string_mode = False
@@ -68,7 +67,7 @@ async def _fetch_game(game_id):
 #forces function to just return ID
 async def _create(args, author, channel, simple_output=False):
 
-    if type(channel) == discord.PrivateChannel:
+    if isinstance(channel, discord.PrivateChannel):
         return "Games cannot be created in DMs. Please try again in a server."
 
     try:
@@ -297,6 +296,9 @@ async def _start(args, author, channel):
 
     if author != target_game.owner:
             return NOT_OWNER_MESSAGE
+
+    if len(target_game.possible_roles) > len(target_game.players):
+        return "Insufficient players to start!"
     
     
     target_game.start()
@@ -385,14 +387,18 @@ async def _voteinfo(args, author, channel):
 
     return "\n".join(outlist)
         
-#maf!power [game id] [args depend on power]
-#force_private is for testing
-#proper mock channels cannot be created,
-#so force private makes it treat
-#a mock channel as a private message
-async def _power(args, author, channel, force_private=False):
+#maf!power [game id] [args depend on role]
+async def _power(args, author, channel):
 
-    if not force_private and type(channel) != discord.PrivateChannel:
+    try:
+        is_private = channel.is_private
+    except TypeError:
+        if instanceof(channel, discord.PrivateChannel):
+            is_private = True
+        else:
+            is_private = False
+
+    if not is_private:
         return "Powers cannot be used outside of DMs. You are encouraged to delete the command."
 
     if len(args) < 2:
@@ -408,7 +414,7 @@ async def _power(args, author, channel, force_private=False):
     except KeyError:
         return "You are either dead, or not in this game."
 
-    player.target_power(args[1:])
+    return player.target_power(args[1:])
 
 #maf!time [game id]
 async def _time(args, author, channel):

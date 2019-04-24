@@ -50,18 +50,14 @@ def setup_capone(loop = None):
 
     return client
 
-#Runs once per minute.
-async def tick_games(client):
-  #Prevents this from running before the bot is operational.
-  await client.wait_until_ready()
-
-  while not client.is_closed:
+async def tick_games():
 
     #Loop over all games
     for game_id, current_game in game.game_dict.items():
       current_game.tick()
 
-      #If the game is beyond the current maximum age, kill it, and provide the cull message.
+      # If the game is beyond the current maximum age, kill it, and provide the cull message.
+      # This can use send_message() because games don't age in testing
       if current_game.culled:
         message = "Game {0}: {1}".format(game_id, CULL_MESSAGE)
         await client.send_message(current_game.home_channel, message)
@@ -75,15 +71,26 @@ async def tick_games(client):
       for message in current_game.output_buffer:
         output_dict[message[1]].append(message[0])
 
-      #Output everything in output dict to the appropriate channel
-      for item in output_dict.items():
-        message = "\n".join(item[1])
-        message = ("Game {0}:\n```\n" + message + "\n```").format(game_id)
-        await client.send_message(item[0], message)
+      for key, value in output_dict.items():
+          message = "\n".join(value)
+          output_dict[key] = ("Game {0}:\n```\n" + message + "\n```").format(game_id)
 
       #Clear the buffer
       current_game.output_buffer = []
-    #Run this again in 60 seconds
+
+    return output_dict
+
+#Runs once per minute.
+async def tick_loop(client):
+
+    #Prevents this from running before the bot is operational.
+    await client.wait_until_ready()
+    await tick_games()
+
+    #Output everything in output dict to the appropriate channel
+    for item in output_dict.items():
+      await client.send_message(item[0], message)
+
     await asyncio.sleep(60)
 
 def start_capone(client):

@@ -14,7 +14,7 @@ class _Role():
             self.power_call = lambda _: None
             return "Power targetting reset."
 
-    def try_to_kill(self, source):
+    def can_be_killed(self, source):
         if self.attribs.get("protected", False):
             return False
         else:
@@ -49,9 +49,9 @@ class Townie(_Role):
 
 class Enforcer(_Role):
 
-    def try_to_kill(self, source):
+    def can_be_killed(self, source):
         
-        dying = super().try_to_kill(source)
+        dying = super().can_be_killed(source)
 
         if dying:
 
@@ -75,18 +75,23 @@ class Enforcer(_Role):
             return n
 
         if args[0] == "kill":
+            if len(args) < 2:
+                return "Insufficient arguments."
+
             for player in self.game.players:
-                if args[1] == player:
+                if args[1] == str(player):
                     target = player
                     break
             else:
+
                 return ("Target player not found. "
                         "Note that only usernames, "
                         "not nicknames, can be used, "
                         "and the discriminator (#1234)"
                         "is required.")
 
-            self.power_call = functools.partial(game.try_to_kill, [target, self])
+            print(type(target))
+            self.power_call = functools.partial(self.game.try_to_kill, [target, self])
             return "Target set."
 
         else:
