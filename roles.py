@@ -2,9 +2,7 @@ import functools
 import random
 
 
-
 class _Role():
-
     def __init__(self, game):
         self.game = game
 
@@ -32,11 +30,11 @@ class _Role():
     faction = None
     power_call = None
     attribs = {}
-    #high priority goes first
-    #priority can be changed for each ability
-    #but it won't automatically be reset
-    priority = 0
     voted_for = None
+
+    # High priority goes first. Priority can be changed for each ability,
+    # but it won't automatically be reset
+    priority = 0
     
 class Townie(_Role):
 
@@ -47,14 +45,13 @@ class Townie(_Role):
                    "but be careful you don't get stabbed!")
     faction = "town"
 
+
 class Enforcer(_Role):
 
     def can_be_killed(self, source):
-        
         dying = super().can_be_killed(source)
 
         if dying:
-
             maflist = [player for player, role in self.player_roles.items()
                        if player in game.players and
                        role.faction == "mafia" and
@@ -69,7 +66,6 @@ class Enforcer(_Role):
         return dying
 
     def target_power(self, args):
-        
         n = super().target_power(args)
         if n != None:
             return n
@@ -83,7 +79,6 @@ class Enforcer(_Role):
                     target = player
                     break
             else:
-
                 return ("Target player not found. "
                         "Note that only usernames, "
                         "not nicknames, can be used, "
@@ -91,7 +86,8 @@ class Enforcer(_Role):
                         "is required.")
 
             print(type(target))
-            self.power_call = functools.partial(self.game.try_to_kill, [target, self])
+            self.power_call = functools.partial(
+                    self.game.try_to_kill, [target, self])
             return "Target set."
 
         else:
@@ -105,8 +101,8 @@ class Enforcer(_Role):
                    "If you die, a random mafia member will become an enforcer.")
     faction = "mafia"
 
-class Goon(_Role):
 
+class Goon(_Role):
     short_name = "goon"
     long_name = "Goon"
     description = "Scummy, but harmless. Cooperate with the mafia to take down the town."

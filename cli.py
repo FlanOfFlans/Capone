@@ -2,6 +2,7 @@ import discord
 import game
 import math
 
+
 NOT_OWNER_MESSAGE = "You do not own this game."
 BAD_ID_MESSAGE = "No game found with that ID."
 BAD_ARGS_MESSAGE = "Insufficient arguments for that command."
@@ -11,29 +12,29 @@ BAD_USER_MESSAGE = ("Target player not found. "
                     "and the discriminator (#1234) "
                     "is required.")
 
-#Helper functions
-#This breaks strings apart, reading things "in quotes" as one token.
+
+# Breaks strings apart, reading things "in quotes" as one token.
 async def _split_tokens(xstr):
     prev_index = 0
     string_mode = False
     tokens = []
 
     for index in range(0, len(xstr)):
-
         to_append = ""
 
-        #Break token on spaces
+        # Break token on spaces
         if (not string_mode) and xstr[index] == " " :
             if index == prev_index: continue
             
             to_append = xstr[prev_index:index]
             prev_index = index + 1
 
-        #Start scanning a string
+        # Start scanning a string
         elif (not string_mode) and xstr[index] == "\"":
             string_mode = True
             prev_index = index + 1 
-        #Stop scanning a string
+
+        # Stop scanning a string
         elif string_mode and xstr[index] == "\"":
             string_mode = False
 
@@ -43,11 +44,11 @@ async def _split_tokens(xstr):
         if to_append != "":
             tokens.append(to_append)
 
-    #Don't lose the last token!
+    # Don't lose the last token!
     if xstr[prev_index:] != "":
         tokens.append( xstr[prev_index:] )
 
-    #Convert to ints where possible
+    # Convert to ints where possible
     converted_tokens = []
     for token in tokens:
         try:
@@ -61,12 +62,11 @@ async def _fetch_game(game_id):
     return game.game_dict[game_id]
 
 
-#Command functions
-#maf!create [roles] [phase time]
-#simple_output is for testing
-#forces function to just return ID
+# Command functions
+# maf!create [roles] [phase time]
+# simple_output is for testing
+# Forces function to just return ID
 async def _create(args, author, channel, simple_output=False):
-
     if isinstance(channel, discord.PrivateChannel):
         return "Games cannot be created in DMs. Please try again in a server."
 
@@ -78,7 +78,8 @@ async def _create(args, author, channel, simple_output=False):
         return "Role list must be a string."
 
     if new_game == -1:
-        return "Invalid role in role list. Roles must be separated by commas, without spaces."
+        return ("Invalid role in role list. Roles must be separated by "
+                "commas, without spaces.")
     if new_game == -2:
         return "Phases must be at least one minutes long."
         
@@ -87,34 +88,22 @@ async def _create(args, author, channel, simple_output=False):
                   "Roles: {1}\n"
                   "ID: {2}\n").format(
                   new_game.owner.name,
-                  args[0].replace(' ', ', '),
+                  args[0].replace(',', ', '),
                   new_game.id)
+
     else:
         outstr = new_game.id
 
     return outstr
 
+
+# maf!delete [game id]
 async def _delete(args, author, channel):
-    if len(args) < 1:
-        return BAD_ARGS_MESSAGE
-
-    try:
-        target_game = await _fetch_game(args[0])
-    except KeyError:
-        return BAD_ID_MESSAGE
-
-    if channel != target_game.home_channel:
-        return "You may only delete a game in the channel it was created in."
-    
-    if author != target_game.owner:
-        return NOT_OWNER_MESSAGE
+    raise NotImplementedError
 
 
-
-
-#maf!join [game id]
+# maf!join [game id]
 async def _join(args, author, channel):
-
     if len(args) < 1:
         return BAD_ARGS_MESSAGE
     
@@ -123,7 +112,7 @@ async def _join(args, author, channel):
     except KeyError:
         return BAD_ID_MESSAGE
 
-    #To prevent people guessing/mistyping IDs and joining a game they can't see.
+    # Prevents people guessing/mistyping IDs and joining a game they can't see.
     if channel != target_game.home_channel:
         return "You may only join a game in the channel it was created in."
 
@@ -143,9 +132,9 @@ async def _join(args, author, channel):
         target_game.players.append(author)
         return "Game successfully joined."
     
-#maf!leave [game id]
-async def _leave(args, author, channel):
 
+# maf!leave [game id]
+async def _leave(args, author, channel):
     if len(args) < 1:
         return BAD_ARGS_MESSAGE
 
@@ -154,26 +143,25 @@ async def _leave(args, author, channel):
     except KeyError:
         return BAD_ID_MESSAGE
 
-    #Ensure everybody can see that they left.
-    #Return values always replies to author directly,
-    #So a buffered message must be used instead.
+    # Ensure everybody can see that they left.
+    # Return values always replies to author directly,
+    # So a buffered message must be used instead.
     if channel != target_game.home_channel:
-        target_game.buffer_message("{0} has left the game.".format(str(author)))
+        message = "{0} has left the game.".format(str(author))
+        target_game.buffer_message(message)
 
     try:
         if target_game.started:
             target_game.kill(author)
         else:
             target_game.players.remove(author)
-
         return "Game sucessfully left."
-    
     except (KeyError, ValueError):
         return "You aren't in that game."
 
-#maf!kick [game id] [target]
-async def _kick(args, author, channel):
 
+# maf!kick [game id] [target]
+async def _kick(args, author, channel):
     if len(args) < 2:
         return BAD_ARGS_MESSAGE
 
@@ -192,7 +180,7 @@ async def _kick(args, author, channel):
     else:
         return BAD_USER_MESSAGE
 
-    #Ensure everybody can see it.
+    # Ensure everybody can see the kick message.
     if channel != target_game.home_channel:
 
         target_game.buffer_message("{0} has been kicked by the owner."
@@ -205,9 +193,9 @@ async def _kick(args, author, channel):
 
     return "Player has been kicked."
 
-#maf!ban [game id] [target]
-async def _ban(args, author, channel):
 
+# maf!ban [game id] [target]
+async def _ban(args, author, channel):
     if len(args) < 2:
         return BAD_ARGS_MESSAGE
     
@@ -217,11 +205,10 @@ async def _ban(args, author, channel):
         return BAD_ID_MESSAGE
     
     if author != target_game.owner:
-            return NOT_OWNER_MESSAGE
+        return NOT_OWNER_MESSAGE
 
     if target in target_game.banned:
-            return "User is already banned."
-
+        return "User is already banned."
     
     for member in channel.server.members:
         if args[1] == str(member):
@@ -231,7 +218,7 @@ async def _ban(args, author, channel):
     else:
         return BAD_USER_MESSAGE
 
-    #Ensure everybody can see it
+    # Ensure everybody can see the ban message
     if channel != target_game.home_channel:
         target_game.buffer_message("{0} has been banned by the owner."
             .format(str(target)))
@@ -242,16 +229,16 @@ async def _ban(args, author, channel):
         else:
             target_game.players.remove(target)
             
-    #Banning players not in the game yet is expected
+    # Banning players not in the game yet is expected
     except ValueError:
         pass
 
     target_game.banned.append(target)
     return "User has been banned."
 
-#maf!unban [game id] [target]
-async def _unban(args, author, channel):
 
+# maf!unban [game id] [target]
+async def _unban(args, author, channel):
     if len(args) < 2:
         return BAD_ARGS_MESSAGE
 
@@ -262,8 +249,6 @@ async def _unban(args, author, channel):
 
     if author != target_game.owner:
         return NOT_OWNER_MESSAGE
-    
-
 
     for member in channel.server.members:
         if args[1] == str(member):
@@ -283,9 +268,9 @@ async def _unban(args, author, channel):
 
     return "User has been unbanned."
 
-#maf!start [game id]
-async def _start(args, author, channel):
 
+# maf!start [game id]
+async def _start(args, author, channel):
     if len(args) < 1:
         return BAD_ARGS_MESSAGE
 
@@ -300,13 +285,12 @@ async def _start(args, author, channel):
     if len(target_game.possible_roles) > len(target_game.players):
         return "Insufficient players to start!"
     
-    
     target_game.start()
     return "Game queued to be started!"
 
-#maf!vote [game id] [target]
-async def _vote(args, author, channel):
 
+# maf!vote [game id] [target]
+async def _vote(args, author, channel):
     if len(args) < 2:
         return BAD_ARGS_MESSAGE
 
@@ -342,29 +326,28 @@ async def _vote(args, author, channel):
     if target not in target_game.player_roles:
         return "That person is already dead."
 
-    #Voting for the same person twice unvotes
+    # Voting for the same person twice unvotes
     if role.voted_for == target:
         role.voted_for = None
         target_game.vote_dict[target] -= 1
         return "Vote reset."
 
     else:
-        #Remove previous vote
+        # Remove previous vote
         if role.voted_for != None:
             target_game.vote_dict[role.voted_for] -= 1
         role.voted_for = target
         target_game.vote_dict[target] += 1
 
-    if target_game.vote_dict[target] >= math.ceil(len(target_game.player_roles) / 2):
+    if target_game.vote_dict[target] >= (
+            math.ceil(len(target_game.player_roles) / 2)):
         target_game.kill(target)
-        return "It is decided; {0} shall hang.".format(str(target))
+        return "It is decided; {0} shall hang!".format(str(target))
     else:
         return "Vote cast."
 
 
-
-
-#maf!voteinfo [game id]
+# maf!voteinfo [game id]
 async def _voteinfo(args, author, channel):
 
     if len(args) < 1:
@@ -387,7 +370,7 @@ async def _voteinfo(args, author, channel):
 
     return "\n".join(outlist)
         
-#maf!power [game id] [args depend on role]
+# maf!power [game id] [args depend on role]
 async def _power(args, author, channel):
 
     try:
@@ -399,7 +382,8 @@ async def _power(args, author, channel):
             is_private = False
 
     if not is_private:
-        return "Powers cannot be used outside of DMs. You are encouraged to delete the command."
+        return ("Powers cannot be used outside of DMs. "
+                "You are encouraged to delete the command."
 
     if len(args) < 2:
         return BAD_ARGS_MESSAGE
@@ -416,7 +400,7 @@ async def _power(args, author, channel):
 
     return player.target_power(args[1:])
 
-#maf!time [game id]
+# maf!time [game id]
 async def _time(args, author, channel):
 
     if len(args) < 1:
@@ -437,7 +421,7 @@ async def _time(args, author, channel):
             "{1} minute(s) until {2}."
            ).format(current_phase, time, next_phase)
 
-#maf!maflist [game id]
+# maf!maflist [game id]
 async def _maflist(args, author, channel):
     raise NotImplementedError
     
@@ -459,7 +443,6 @@ commands = (
 })
 
 async def handle_command(command, author, channel):
-
     split_message = await _split_tokens(command)
     command_name = split_message[0]
     args = split_message[1:]

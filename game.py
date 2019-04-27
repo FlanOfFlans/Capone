@@ -2,39 +2,37 @@ import time
 import random
 import roles
 
-#Unstarted games older than this will be culled
+# Unstarted games older than this will be culled
 _MAX_UNSTARTED_AGE = 4230 #72 hours
 
-#Started games older than this will be culled
-#Age resets when starting
+# Started games older than this will be culled
+# Age resets when starting
 _MAX_STARTED_AGE = 30240 #3 weeks
 
 game_dict = {}
 
 def _generate_id(depth=0):
-
     if depth >= 5 and depth % 5 == 0:
         print("Spending a lot of time regenerating IDs!")
     
     hex_str = hex(round(time.time()))
     
-    #remove leading '0x', add hyphen after 4 hex characters
+    # Remove leading '0x', add hyphen after 4 hex characters
     hex_str = hex_str[2:6] + '-' + hex_str[6:]
     
-    #1-digit hex number
+    # 1-digit hex number
     randomized = hex(random.randint(1, 15))
     
-    #remove leading '0x' from this too
+    # Remove leading '0x' from this too
     hex_str += randomized[2:]
 
-    #recurse until we get a unique ID
+    # Recurse until we get a unique ID
     if hex_str in game_dict:
         return _generate_id(depth + 1)
     else:
         return hex_str
 
 class _Game():
-
     def __init__(self, owner, phase_time, role_list, home_channel):
         self.home_channel = home_channel
 
@@ -49,7 +47,7 @@ class _Game():
 
         self.possible_roles = role_list
         self.player_roles = {}
-        self.all_players = {} #includes dead people
+        self.all_players = {} # Includes dead people
         
         self.started = False
         self.age = 0
@@ -63,12 +61,12 @@ class _Game():
         self.culled = False
         game_dict[self.id] = self
 
-    #Runs once per minute
+    # Runs once per minute
     def tick(self):
         self.age += 1
 
-        #Flags game for culling
-        #The tick loop handles actually culling the game
+        # Flags game for culling
+        # The tick loop handles actually culling the game
         if not self.started and self.age > _MAX_UNSTARTED_AGE:
             self.culled = True
 
@@ -103,6 +101,7 @@ class _Game():
 
         player_roles[player] = role
 
+    # Buffered messages will be sent to home channel when ticked.
     def buffer_message(self, message, channel=None):
         if channel == None:
             channel = self.home_channel
@@ -132,7 +131,8 @@ class _Game():
         self.buffer_message("The game has started!")
 
     def _dusk(self):
-        self.buffer_message("It is now night! Town players should refrain from talking to one another at night.")
+        self.buffer_message("It is now night! Town players should refrain "
+                            "from talking to one another at night.")
 
         self.is_day = False
         self.remaining_phase_time = self.phase_length

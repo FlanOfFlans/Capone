@@ -2,7 +2,7 @@ import cli
 import asyncio
 import main
 import re
-from sys import argv
+import sys
 
 
 class MockServer():
@@ -10,11 +10,13 @@ class MockServer():
         self.members = members
         print("Server created.")
 
+
 class MockChannel():
     def __init__(self, server, is_private = False):
         self.server = server
         self.is_private = is_private
         print("Channel created.")
+
 
 class MockUser():
     def __init__(self, name, discriminator):
@@ -27,7 +29,6 @@ class MockUser():
 
 
 # Contains test functions for getattr()
-
 class TestDummy():
     async def basic_creation_test(args):
         print("Starting quick test!")
@@ -126,7 +127,8 @@ class TestDummy():
                         command_args.append(eval("'"+n+"'", names))
 
                 try:
-                    result = await cli.commands[command_name](command_args, author, channel)
+                    result = await cli.commands[command_name] \ 
+                        (command_args, author, channel)
                     print(result)
                 except KeyError:
                     print("Bad command name.")
@@ -145,17 +147,18 @@ class TestDummy():
             
             command = input(">")
 
+
 async def run_test():
     try:
-        test = getattr(TestDummy, argv[1])
+        test = getattr(TestDummy, sys.argv[1])
     except AttributeError:
         print("No such test.")
     else:
-        await test(argv)
+        await test(sys.argv)
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(run_test())
 
-if len(argv) > 2 and argv[2] == "continue":
+if len(sys.argv) > 2 and sys.argv[2] == "continue":
     client = main.setup_capone(loop)
     main.start_capone(client)
