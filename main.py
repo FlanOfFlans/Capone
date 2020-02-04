@@ -7,6 +7,7 @@ import traceback
 
 
 prefix = "maf!"
+debug_mode = False
 
 CULL_MESSAGE = ("To save my host's resources, this game has been culled "
                 "after going on too long. If this game was still active, "
@@ -62,6 +63,7 @@ def setup_capone(loop = None):
 async def tick_games():
 
     # Loop over all games
+    print("Ticking games...")
     for game_id, current_game in game.game_dict.items():
         current_game.tick()
 
@@ -84,7 +86,7 @@ async def tick_games():
             output_dict[message[1]].append(message[0])
 
             for key, value in output_dict.items():
-                message = "Game {0}:\n```\n" + ("\n".join(value)) + "\n```" \ 
+                message = "\n**Game {0}**:\n\n" + ("\n".join(value)) \
                     .format(game_id)
                 
                 output_dict[key] = message
@@ -92,23 +94,12 @@ async def tick_games():
         # Clear the buffer
         current_game.output_buffer = []
 
-    return output_dict
-
-# Runs once per minute.
-async def tick_loop(client):
-
-    # Prevents this from running before the bot is operational.
-    await client.wait_until_ready()
-    await tick_games()
-
-    # Output everything in output dict to the appropriate channel
-    for item in output_dict.items():
-      await client.send_message(item[0], message)
-
-    await asyncio.sleep(60)
+        asyncio.sleep(60)
 
 def start_capone(client):
-    client.loop.create_task(tick_games(client))
+    print("looping!")
+    debug_event = asyncio.Event()
+    client.loop.create_task(tick_games())
 
     token = open("capone.ini").readline()
     token = token.replace("\n", "")

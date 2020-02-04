@@ -3,20 +3,19 @@ import random
 
 
 class _Role():
-    def __init__(self, game):
+    def __init__(self, game, player):
         self.game = game
+        self.player = player
 
     def target_power(self, args):
-
         if args[0] == "unset":
             self.power_call = lambda _: None
             return "Power targetting reset."
 
-    def can_be_killed(self, source):
-        if self.attribs.get("protected", False):
-            return False
-        else:
-            return True
+    def check_nightkill_immunity(self, source):
+        for listener in nightkill_listener:
+            result = listener(source)
+            if result == False: return True
 
     def dawn(self):
         pass
@@ -29,8 +28,13 @@ class _Role():
     description = "If you're seeing this, somebody screwed up."
     faction = None
     power_call = None
-    attribs = {}
     voted_for = None
+    attribs = {}
+
+    # Functions in nightkill_listeners will run on kill attempt
+    # Take one argument, source, a role listing who the attacker is
+    # Return True if the victim still dies, False otherwise
+    nightkill_listeners = []
 
     # High priority goes first. Priority can be changed for each ability,
     # but it won't automatically be reset
@@ -65,13 +69,22 @@ class Enforcer(_Role):
 
         return dying
 
+    def enforcer_kill(self, target):
+        if not target.check_nightkill_immunity(source):
+            self.game.kill(target)
+            self.game.buffer_message("You have successfully killed {0}!".format(str(target)), self.player)
+            self.game.buffer_message("You have been killed by a visitor!", target)
+        else:
+            self.game.buffer_message("You attempted to kill {0}, but they were immune!".format(str(target)), self.player)
+            self.game.bugger_message("A visitor attempted to kill you, but you were immune!", target)
+
     def target_power(self, args):
         n = super().target_power(args)
         if n != None:
             return n
 
         if args[0] == "kill":
-            if len(args) < 2:
+            if len(args) != 2:
                 return "Insufficient arguments."
 
             for player in self.game.players:
@@ -85,9 +98,9 @@ class Enforcer(_Role):
                         "and the discriminator (#1234)"
                         "is required.")
 
-            print(type(target))
             self.power_call = functools.partial(
-                    self.game.try_to_kill, [target, self])
+                    self.enforcer_kill, [target, self])
+
             return "Target set."
 
         else:

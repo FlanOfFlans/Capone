@@ -82,9 +82,6 @@ class _Game():
             elif not self.is_day and self.remaining_phase_time <= 0:
                 self._dawn()
 
-    def try_to_kill(self, target, source):
-        if target.can_be_killed(source):
-            kill(target)
     
     def kill(self, target):
         target_role = self.player_roles.pop(target)
@@ -120,7 +117,7 @@ class _Game():
             chosen_player = random.choice(unchosen_players)
             unchosen_players.remove(chosen_player)
 
-            self.player_roles[chosen_player] = role(self)
+            self.player_roles[chosen_player] = role(self, chosen_player)
             self.buffer_message(("Your role is **{0}**!\n"
                             "{1}").format(role.long_name, role.description),
                             chosen_player)

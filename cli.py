@@ -104,7 +104,7 @@ async def _delete(args, author, channel):
 
 # maf!join [game id]
 async def _join(args, author, channel):
-    if len(args) < 1:
+    if len(args) != 1:
         return BAD_ARGS_MESSAGE
     
     try:
@@ -135,7 +135,7 @@ async def _join(args, author, channel):
 
 # maf!leave [game id]
 async def _leave(args, author, channel):
-    if len(args) < 1:
+    if len(args) != 1:
         return BAD_ARGS_MESSAGE
 
     try:
@@ -162,7 +162,7 @@ async def _leave(args, author, channel):
 
 # maf!kick [game id] [target]
 async def _kick(args, author, channel):
-    if len(args) < 2:
+    if len(args) != 2:
         return BAD_ARGS_MESSAGE
 
     try:
@@ -196,7 +196,7 @@ async def _kick(args, author, channel):
 
 # maf!ban [game id] [target]
 async def _ban(args, author, channel):
-    if len(args) < 2:
+    if len(args) != 2:
         return BAD_ARGS_MESSAGE
     
     try:
@@ -239,7 +239,7 @@ async def _ban(args, author, channel):
 
 # maf!unban [game id] [target]
 async def _unban(args, author, channel):
-    if len(args) < 2:
+    if len(args) != 2:
         return BAD_ARGS_MESSAGE
 
     try:
@@ -271,7 +271,7 @@ async def _unban(args, author, channel):
 
 # maf!start [game id]
 async def _start(args, author, channel):
-    if len(args) < 1:
+    if len(args) != 1:
         return BAD_ARGS_MESSAGE
 
     try:
@@ -291,7 +291,7 @@ async def _start(args, author, channel):
 
 # maf!vote [game id] [target]
 async def _vote(args, author, channel):
-    if len(args) < 2:
+    if len(args) != 2:
         return BAD_ARGS_MESSAGE
 
     try:
@@ -383,7 +383,7 @@ async def _power(args, author, channel):
 
     if not is_private:
         return ("Powers cannot be used outside of DMs. "
-                "You are encouraged to delete the command."
+                "You are encouraged to delete the command.")
 
     if len(args) < 2:
         return BAD_ARGS_MESSAGE
