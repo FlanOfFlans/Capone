@@ -56,6 +56,7 @@ class _Game():
         self.home_channel = home_channel
         self.output_buffer = []
         self.power_buffer = []
+        self.kill_buffer = []
         self.vote_dict = {}
 
         self.id = _generate_id()
@@ -84,10 +85,7 @@ class _Game():
                 self._dawn()
     
     def kill(self, target):
-        target_role = self.player_roles.pop(target)
-        
-        title = str(target) + ", the " + target_role.long_name
-        self.buffer_message(title + ", has been found dead!")
+        self.kill_buffer.append(target)
 
     def change_role(self, target, new_role):
         role = new_role(self)
@@ -135,6 +133,19 @@ class _Game():
         self.remaining_phase_time = self.phase_length
 
         roles = self.player_roles.values()
+        sorted(roles, key=lambda x: x.priority, reverse=True)
+
+        for role in roles:
+            try: role.power_call()
+            except TypeError: pass
+
+        for target in self.kill_buffer:
+            target_role = self.player_roles.pop(target)
+
+            title = str(target) + ", the " + target_role.lon_name
+            self.buffer_message(title + ", has been found dead!")
+
+        kill_buffer = []
 
         for role in roles:
             role.dusk()
@@ -153,6 +164,14 @@ class _Game():
         for role in roles:
             try: role.power_call()
             except TypeError: pass
+
+        for target in self.kill_buffer:
+            target_role = self.player_roles.pop(target)
+            
+            title = str(target) + ", the " + target_role.long_name
+            self.buffer_message(title + ", has been found dead!")
+
+        kill_buffer = []
 
         for role in roles:
             role.dawn()

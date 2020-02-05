@@ -13,7 +13,7 @@ class _Role():
             return "Power targetting reset."
 
     def check_nightkill_immunity(self, source):
-        for listener in nightkill_listener:
+        for listener in self.nightkill_listeners:
             result = listener(source)
             if result == False: return True
 
@@ -70,13 +70,15 @@ class Enforcer(_Role):
         return dying
 
     def enforcer_kill(self, target):
-        if not target.check_nightkill_immunity(source):
+        target_role = self.game.player_roles[target]
+
+        if not target_role.check_nightkill_immunity(self):
             self.game.kill(target)
             self.game.buffer_message("You have successfully killed {0}!".format(str(target)), self.player)
             self.game.buffer_message("You have been killed by a visitor!", target)
         else:
             self.game.buffer_message("You attempted to kill {0}, but they were immune!".format(str(target)), self.player)
-            self.game.bugger_message("A visitor attempted to kill you, but you were immune!", target)
+            self.game.buffer_message("A visitor attempted to kill you, but you were immune!", target)
 
     def target_power(self, args):
         n = super().target_power(args)
@@ -86,6 +88,9 @@ class Enforcer(_Role):
         if args[0] == "kill":
             if len(args) != 2:
                 return "Insufficient arguments."
+
+            if self.game.is_day:
+                return "This power can only be used at night."
 
             for player in self.game.players:
                 if args[1] == str(player):
