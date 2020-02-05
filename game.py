@@ -50,6 +50,7 @@ class _Game():
         self.all_players = {} # Includes dead people
         
         self.started = False
+        self.deleted = False
         self.age = 0
         
         self.home_channel = home_channel
@@ -81,7 +82,6 @@ class _Game():
 
             elif not self.is_day and self.remaining_phase_time <= 0:
                 self._dawn()
-
     
     def kill(self, target):
         target_role = self.player_roles.pop(target)

@@ -4,6 +4,7 @@ import cli
 import game
 import collections
 import traceback
+import sys
 
 
 prefix = "maf!"
@@ -55,51 +56,66 @@ def setup_capone(loop = None):
                   ).format(exc)
 
       if output != None:
-        await client.send_message(message.channel, output)
+        await message.channel.send(output)
 
     return client
 
 
-async def tick_games():
+async def tick_games(client, interval):
 
     # Loop over all games
-    print("Ticking games...")
-    for game_id, current_game in game.game_dict.items():
-        current_game.tick()
+    await client.wait_until_ready()
+    while True:
+        print("Ticking games...")
 
-        # If the game is beyond the current maximum age, 
-        # kill it, and provide the cull message.
-        # Normally, send_message() is not used in client methods,
-        # to support tests. This can use send_message() because games don't 
-        # age in testing
-        if current_game.culled:
-            message = "Game {0}: {1}".format(game_id, CULL_MESSAGE)
-            await client.send_message(current_game.home_channel, message)
-            del game.game_dict[game_id]
+        delete_list = []
+        for game_id, current_game in game.game_dict.items():
+            current_game.tick()
 
-      
-        # Clumps all output to a given channel into one string.
-        # If no key is found, it's an empty list
-        output_dict = collections.defaultdict(list)
+            # If the game is beyond the current maximum age, 
+            # kill it, and provide the cull message.
+            # Normally, send_message() is not used in client methods,
+            # to support tests. This can use send_message() because games don't 
+            # age in testing
+            if current_game.culled:
+                message = "Game {0}: {1}".format(game_id, CULL_MESSAGE)
+                await client.send_message(current_game.home_channel, message)
+                delete_list.append(game_id)
+          
+            # Clumps all output to a given channel into one string.
+            # If no key is found, it's an empty list
+            output_dict = collections.defaultdict(list)
 
-        for message in current_game.output_buffer:
-            output_dict[message[1]].append(message[0])
+            for message in current_game.output_buffer:
+                output_dict[message[1]].append(message[0])
 
             for key, value in output_dict.items():
-                message = "\n**Game {0}**:\n\n" + ("\n".join(value)) \
+                message = ("\n**Game {0}**:\n" + ("\n".join(value))) \
                     .format(game_id)
                 
                 output_dict[key] = message
 
-        # Clear the buffer
-        current_game.output_buffer = []
+            for target, message in output_dict.items():
+                await target.send(message)
 
-        asyncio.sleep(60)
+            if current_game.deleted:
+                delete_list.append(game_id)
+            
+            # Clear the buffer
+            current_game.output_buffer = []
+
+        for game_id in delete_list:
+            del game.game_dict[game_id]
+
+        await asyncio.sleep(interval)
 
 def start_capone(client):
-    print("looping!")
-    debug_event = asyncio.Event()
-    client.loop.create_task(tick_games())
+    if len(sys.argv) == 1:
+        interval = 60
+    else:
+        interval = int(sys.argv[1])
+
+    client.loop.create_task(tick_games(client, interval))
 
     token = open("capone.ini").readline()
     token = token.replace("\n", "")

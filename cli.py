@@ -67,7 +67,7 @@ async def _fetch_game(game_id):
 # simple_output is for testing
 # Forces function to just return ID
 async def _create(args, author, channel, simple_output=False):
-    if isinstance(channel, discord.PrivateChannel):
+    if isinstance(channel, discord.abc.PrivateChannel):
         return "Games cannot be created in DMs. Please try again in a server."
 
     try:
@@ -99,8 +99,21 @@ async def _create(args, author, channel, simple_output=False):
 
 # maf!delete [game id]
 async def _delete(args, author, channel):
-    raise NotImplementedError
+    if len(args) != 1:
+        return BAD_ARGS_MESSAGE
 
+    try:
+        target_game = await _fetch_game(args[0])
+    except KeyError:
+        return BAD_ID_MESSAGE
+
+    if author != target_game.owner:
+        return NOT_OWNER_MESSAGE
+
+    target_game.buffer_message("This game has been deleted by the owner!")
+    target_game.deleted = True
+
+    return "The game has been queued for deletion."
 
 # maf!join [game id]
 async def _join(args, author, channel):
@@ -156,6 +169,7 @@ async def _leave(args, author, channel):
         else:
             target_game.players.remove(author)
         return "Game sucessfully left."
+
     except (KeyError, ValueError):
         return "You aren't in that game."
 
@@ -373,13 +387,10 @@ async def _voteinfo(args, author, channel):
 # maf!power [game id] [args depend on role]
 async def _power(args, author, channel):
 
-    try:
-        is_private = channel.is_private
-    except TypeError:
-        if instanceof(channel, discord.PrivateChannel):
-            is_private = True
-        else:
-            is_private = False
+    if isinstance(channel, discord.abc.PrivateChannel):
+        is_private = True
+    else:
+        is_private = False
 
     if not is_private:
         return ("Powers cannot be used outside of DMs. "

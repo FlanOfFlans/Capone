@@ -99,7 +99,7 @@ class Enforcer(_Role):
                         "is required.")
 
             self.power_call = functools.partial(
-                    self.enforcer_kill, [target, self])
+                    self.enforcer_kill, target)
 
             return "Target set."
 
