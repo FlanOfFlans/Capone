@@ -143,6 +143,7 @@ class _Game():
             target_role = self.player_roles.pop(target)
 
             title = str(target) + ", the " + target_role.long_name
+
             self.buffer_message(title + ", has been found dead!")
 
         kill_buffer = []
