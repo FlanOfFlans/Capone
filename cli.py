@@ -142,6 +142,12 @@ async def _join(args, author, channel):
         return "This game is already full."
 
     else:
+        #find next free ID
+        i = 0
+        while i in target_game.player_ids:
+            i += 1
+            
+        target_game.player_ids[i] = author
         target_game.players.append(author)
         return "Game successfully joined."
     
@@ -168,6 +174,11 @@ async def _leave(args, author, channel):
             target_game.kill(author)
         else:
             target_game.players.remove(author)
+            for player_id, player in target_game.player_ids.items():
+                if player == author:
+                    target_game.player_ids.pop(player_id)
+                    break
+
         return "Game sucessfully left."
 
     except (KeyError, ValueError):
@@ -204,6 +215,10 @@ async def _kick(args, author, channel):
         kill(target)
     else:
         target_game.players.remove(target)
+        for player_id, player in target_game.player_ids.items():
+            if player == author:
+                target_game.player_ids.pop(player_id)
+                break
 
     return "Player has been kicked."
 
@@ -242,6 +257,10 @@ async def _ban(args, author, channel):
             kill(target)
         else:
             target_game.players.remove(target)
+            for player_id, player in target_game.player_ids.items():
+                if player == author:
+                    target_game.player_ids.pop(player_id)
+                    break
             
     # Banning players not in the game yet is expected
     except ValueError:
@@ -330,13 +349,11 @@ async def _vote(args, author, channel):
 
     role = target_game.player_roles[author]
 
-    for player in target_game.players:
-        if args[1] == str(player):
-            target = player
-            break
-    else:
-        return BAD_USER_MESSAGE
-
+    try:
+        target = target_game.player_ids[args[1]]
+    except KeyError:
+        return "No player with that ID found. Use maf!voteinfo to see IDs."
+        
     if target not in target_game.player_roles:
         return "That person is already dead."
 
@@ -356,6 +373,7 @@ async def _vote(args, author, channel):
     if target_game.vote_dict[target] >= (
             math.ceil(len(target_game.player_roles) / 2)):
         target_game.kill(target)
+        target_game.can_vote = False
         return "It is decided; {0} shall hang!".format(str(target))
     else:
         return "Vote cast."
@@ -372,9 +390,10 @@ async def _voteinfo(args, author, channel):
     except KeyError:
         return BAD_ID_MESSAGE
 
+    players = target_game.player_ids
     outlist = []
-    for player in target_game.players:
-        xstr = str(player) + " - "
+    for player_id, player in target_game.player_ids.items():
+        xstr = str(player_id) + ": " + str(player) + " - "
 
         if player not in target_game.player_roles:
             xstr += "dead"
