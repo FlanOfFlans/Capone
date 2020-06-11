@@ -38,6 +38,7 @@ class _Game():
 
         self.owner = owner
         self.players = [owner]
+        self.player_ids = {0: owner}
         self.banned = []
 
         self.phase_length = phase_time
@@ -146,7 +147,7 @@ class _Game():
 
             self.buffer_message(title + ", has been found dead!")
 
-        kill_buffer = []
+        self.kill_buffer = []
 
         for role in roles:
             role.dusk()
@@ -172,7 +173,7 @@ class _Game():
             title = str(target) + ", the " + target_role.long_name
             self.buffer_message(title + ", has been found dead!")
 
-        kill_buffer = []
+        self.kill_buffer = []
 
         for role in roles:
             role.dawn()

@@ -92,11 +92,9 @@ class Enforcer(_Role):
             if self.game.is_day:
                 return "This power can only be used at night."
 
-            for player in self.game.players:
-                if args[1] == str(player):
-                    target = player
-                    break
-            else:
+            try:
+                target = self.game.player_ids[args[1]]
+            except KeyError:
                 return ("Target player not found. "
                         "Note that only usernames, "
                         "not nicknames, can be used, "
